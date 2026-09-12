@@ -63,7 +63,7 @@ class MovieBoxProvider : MainAPI() {
         var context: android.content.Context? = null
     }
     override var mainUrl = "https://api3.aoneroom.com"
-    override var name = "MovieBox"
+    override var name = "Ayush Fliz"
     override val hasMainPage = true
     override var lang = "hi"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
@@ -134,12 +134,12 @@ class MovieBoxProvider : MainAPI() {
                 hardcodedTimestamp = now
             )
             val headers = mapOf(
-                "user-agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; sdk_gphone64_x86_64; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+                "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
                 "accept" to "application/json",
                 "content-type" to "application/json",
                 "x-client-token" to xClientToken,
                 "x-tr-signature" to xTrSignature,
-                "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"3.0.03.0529.03","version_code":50020042,"os":"android","os_version":"16","device_id":"$deviceId","install_store":"ps","gaid":"d7578036d13336cc","brand":"google","model":"SM-S918B","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":""}""",
+                "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
                 "x-client-status" to "0"
             )
             val res = app.get(rankingUrl, headers = headers)
@@ -217,6 +217,22 @@ class MovieBoxProvider : MainAPI() {
         val signatureB64 = base64Encode(signature)
 
         return "$timestamp|2|$signatureB64"
+    }
+
+    private fun extractPolicyResource(cookie: String): String? {
+        return try {
+            val match = Regex("""CloudFront-Policy=([^;]+)""").find(cookie) ?: return null
+            val rawB64 = match.groupValues.getOrNull(1) ?: return null
+            val rem = rawB64.length % 4
+            val padded = if (rem > 0) rawB64 + "=".repeat(4 - rem) else rawB64
+            val normalized = padded.replace('-', '+').replace('_', '/')
+            val decodedBytes = base64DecodeArray(normalized)
+            val json = String(decodedBytes, Charsets.UTF_8)
+            val root = mapper.readTree(json)
+            root["Statement"]?.get(0)?.get("Resource")?.asText()
+        } catch (_: Exception) {
+            null
+        }
     }
 
     override val mainPage = mainPageOf(
@@ -298,25 +314,25 @@ class MovieBoxProvider : MainAPI() {
         val getxTrSignature = generateXTrSignature("GET", "application/json", "application/json", url)
 
         val headers = mutableMapOf(
-            "user-agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; sdk_gphone64_x86_64; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+            "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
             "accept" to "application/json",
             "content-type" to "application/json",
             "connection" to "keep-alive",
             "x-client-token" to xClientToken,
             "x-tr-signature" to xTrSignature,
-            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"3.0.03.0529.03","version_code":50020042,"os":"android","os_version":"16","device_id":"$deviceId","install_store":"ps","gaid":"d7578036d13336cc","brand":"google","model":"${randomBrandModel()}","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":""}""",
+            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
             "x-client-status" to "0",
             "x-play-mode" to "2" // Optional, if needed for specific API behavior
         )
 
         val getheaders = mutableMapOf(
-            "user-agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; sdk_gphone64_x86_64; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+            "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
             "accept" to "application/json",
             "content-type" to "application/json",
             "connection" to "keep-alive",
             "x-client-token" to xClientToken,
             "x-tr-signature" to getxTrSignature,
-            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"3.0.03.0529.03","version_code":50020042,"os":"android","os_version":"16","device_id":"$deviceId","install_store":"ps","gaid":"d7578036d13336cc","brand":"google","model":"sdk_gphone64_x86_64","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":""}""",
+            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
             "x-client-status" to "0",
         )
 
@@ -385,13 +401,13 @@ class MovieBoxProvider : MainAPI() {
         val xClientToken = generateXClientToken()
         val xTrSignature = generateXTrSignature("POST", "application/json", "application/json; charset=utf-8", url, jsonBody)
         val headers = mutableMapOf(
-            "user-agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; sdk_gphone64_x86_64; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+            "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
             "accept" to "application/json",
             "content-type" to "application/json",
             "connection" to "keep-alive",
             "x-client-token" to xClientToken,
             "x-tr-signature" to xTrSignature,
-            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"3.0.03.0529.03","version_code":50020042,"os":"android","os_version":"16","device_id":"$deviceId","install_store":"ps","gaid":"d7578036d13336cc","brand":"google","model":"${randomBrandModel()}","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":""}""",
+            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
             "x-client-status" to "0"
         )
         if (!token.isNullOrBlank()) {
@@ -461,13 +477,13 @@ class MovieBoxProvider : MainAPI() {
         val xTrSignature = generateXTrSignature("GET", "application/json", "application/json", finalUrl)
 
         val headers = mutableMapOf(
-            "user-agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; ${randomBrandModel()}; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+            "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
             "accept" to "application/json",
             "content-type" to "application/json",
             "connection" to "keep-alive",
             "x-client-token" to xClientToken,
             "x-tr-signature" to xTrSignature,
-            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"3.0.03.0529.03","version_code":50020042,"os":"android","os_version":"16","device_id":"$deviceId","install_store":"ps","gaid":"d7578036d13336cc","brand":"google","model":"${randomBrandModel()}","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":""}""",
+            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
             "x-client-status" to "0",
             "x-play-mode" to "2"
         )
@@ -722,7 +738,7 @@ class MovieBoxProvider : MainAPI() {
             val subjectXClientToken = generateXClientToken()
             val subjectXTrSignature = generateXTrSignature("GET", "application/json", "application/json", subjectUrl)
             val subjectHeaders = mutableMapOf(
-                "user-agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; sdk_gphone64_x86_64; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+                "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
                 "accept" to "application/json",
                 "content-type" to "application/json",
                 "connection" to "keep-alive",
@@ -793,7 +809,7 @@ class MovieBoxProvider : MainAPI() {
                     val xClientToken = generateXClientToken()
                     val xTrSignature = generateXTrSignature("GET", "application/json", "application/json", url)
                     val headers = mutableMapOf(
-                        "user-agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; sdk_gphone64_x86_64; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+                        "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
                         "accept" to "application/json",
                         "content-type" to "application/json",
                         "connection" to "keep-alive",
@@ -820,6 +836,7 @@ class MovieBoxProvider : MainAPI() {
                         val responseBody = response.body.string()
                         val root = mapper.readTree(responseBody)
                         val playData = root["data"]
+                        var hasValidStream = false
                         // Handle the new API response format with streams
                         val streams = playData?.get("streams")
                         if (streams != null && streams.isArray) {
@@ -827,27 +844,48 @@ class MovieBoxProvider : MainAPI() {
                                 val streamUrl = stream["url"]?.asText() ?: continue
                                 val format = stream["format"]?.asText() ?: ""
                                 val resolutions = stream["resolutions"]?.asText() ?: ""
-                                //val codecName = stream["codecName"]?.asText() ?: "h264"
                                 val signCookieRaw = stream["signCookie"]?.asText()
                                 val signCookie = if (signCookieRaw.isNullOrEmpty()) null else signCookieRaw
-                                //val duration = stream["duration"]?.asInt()
                                 val id = stream["id"]?.asText() ?: "$subjectId|$season|$episode"
                                 val quality = getHighestQuality(resolutions)
+
+                                val resolvedUrl = if (signCookie != null) {
+                                    val policyResource = extractPolicyResource(signCookie)
+                                    if (policyResource != null) {
+                                        val trimmed = policyResource.trimEnd('*', '/')
+                                        if (trimmed.endsWith(".mpd", ignoreCase = true)) {
+                                            trimmed
+                                        } else {
+                                            "$trimmed/index.mpd"
+                                        }
+                                    } else {
+                                        streamUrl
+                                    }
+                                } else {
+                                    streamUrl
+                                }
+
+                                if (resolvedUrl.contains("b164fbfb4347792950bdfbfb563d39d9")) continue
+                                if (resolvedUrl == streamUrl && resolvedUrl.contains("/other/2026/09/04/")) continue
+
                                 callback.invoke(
                                     newExtractorLink(
-                                        source = language.replace("dub","Audio").trim(),
-                                        name = language.replace("dub","Audio").trim(),
-                                        url = streamUrl,
+                                        source = "$name ${language.replace("dub", "Audio").trim()}",
+                                        name = "$name (${language.replace("dub", "Audio").trim()})",
+                                        url = resolvedUrl,
                                         type = when {
-                                            streamUrl.startsWith("magnet:", ignoreCase = true) -> ExtractorLinkType.MAGNET
-                                            streamUrl.contains(".mpd", ignoreCase = true) -> ExtractorLinkType.DASH
-                                            streamUrl.substringAfterLast('.', "").equals("torrent", ignoreCase = true) -> ExtractorLinkType.TORRENT
-                                            format.equals("HLS", ignoreCase = true) || streamUrl.substringAfterLast('.', "").equals("m3u8", ignoreCase = true) -> ExtractorLinkType.M3U8
-                                            streamUrl.contains(".mp4", ignoreCase = true) || streamUrl.contains(".mkv", ignoreCase = true) -> ExtractorLinkType.VIDEO
+                                            resolvedUrl.startsWith("magnet:", ignoreCase = true) -> ExtractorLinkType.MAGNET
+                                            resolvedUrl.contains(".mpd", ignoreCase = true) -> ExtractorLinkType.DASH
+                                            resolvedUrl.substringAfterLast('.', "").equals("torrent", ignoreCase = true) -> ExtractorLinkType.TORRENT
+                                            format.equals("HLS", ignoreCase = true) || resolvedUrl.substringAfterLast('.', "").equals("m3u8", ignoreCase = true) -> ExtractorLinkType.M3U8
+                                            resolvedUrl.contains(".mp4", ignoreCase = true) || resolvedUrl.contains(".mkv", ignoreCase = true) -> ExtractorLinkType.VIDEO
                                             else -> INFER_TYPE
                                         }
                                     ) {
-                                        this.headers = mapOf("Referer" to mainUrl)
+                                        this.headers = mapOf(
+                                            "Referer" to mainUrl,
+                                            "User-Agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)"
+                                        )
                                         if (quality != null) {
                                             this.quality = quality
                                         }
@@ -856,11 +894,13 @@ class MovieBoxProvider : MainAPI() {
                                         }
                                     }
                                 )
+                                hasValidStream = true
+
                                 val subLink = "$mainUrl/wefeed-mobile-bff/subject-api/get-stream-captions?subjectId=$subjectId&streamId=$id"
                                 val xClientToken = generateXClientToken()
                                 val xTrSignature = generateXTrSignature("GET", "", "", subLink)
                                 val subHeaders = mutableMapOf(
-                                    "user-agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; sdk_gphone64_x86_64; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+                                    "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
                                     "Accept" to "",
                                     "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
                                     "X-Client-Status" to "0",
@@ -894,9 +934,9 @@ class MovieBoxProvider : MainAPI() {
                                 val xClientToken1 = generateXClientToken()
                                 val xTrSignature1 = generateXTrSignature("GET", "", "", subLink1)
                                 val subHeaders1 = mutableMapOf(
-                                    "User-Agent" to "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; $brand; Build/BP22.250325.006; Cronet/133.0.6876.3)",
+                                    "User-Agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
                                     "Accept" to "",
-                                    "X-Client-Info" to """{"package_name":"com.community.mbox.in","version_name":"3.0.03.0529.03","version_code":50020042,"os":"android","os_version":"16","device_id":"$deviceId","install_store":"ps","gaid":"d7578036d13336cc","brand":"google","model":"$brand","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":""}""",
+                                    "X-Client-Info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
                                     "X-Client-Status" to "0",
                                     "Content-Type" to "",
                                     "X-Client-Token" to xClientToken1,
@@ -924,16 +964,12 @@ class MovieBoxProvider : MainAPI() {
                                         )
                                     }
                                 }
-                                //hasAnyLinks = true
                             }
                         }
 
-
-                        //Ep Miss Match Fix (SplitsVilla used to test)
-                        if (streams == null || !streams.isArray || streams.size() == 0) {
-
+                        // Fallback if no valid streams were extracted
+                        if (!hasValidStream) {
                             val fallbackUrl = "$mainUrl/wefeed-mobile-bff/subject-api/get?subjectId=$subjectId"
-
                             val fallbackHeaders = headers.toMutableMap().apply {
                                 put("x-tr-signature", generateXTrSignature(
                                     "GET",
@@ -944,29 +980,31 @@ class MovieBoxProvider : MainAPI() {
                             }
 
                             val fallbackResponse = app.get(fallbackUrl, headers = fallbackHeaders)
-
                             if (fallbackResponse.code == 200) {
-
                                 val fallbackRoot = mapper.readTree(fallbackResponse.body.string())
                                 val detectors = fallbackRoot["data"]?.get("resourceDetectors")
-
                                 detectors?.forEach { detector ->
-
                                     detector["resolutionList"]?.forEach { video ->
-
                                         val link = video["resourceLink"]?.asText() ?: return@forEach
+                                        if (link.contains("b164fbfb4347792950bdfbfb563d39d9")) return@forEach
+                                        if (link.contains("/other/2026/09/04/")) return@forEach
                                         val quality = video["resolution"]?.asInt() ?: 0
                                         val se = video["se"]?.asInt()
                                         val ep = video["ep"]?.asInt()
+                                        if (season > 0 && se != null && se != season) return@forEach
+                                        if (episode > 0 && ep != null && ep != episode) return@forEach
 
                                         callback.invoke(
                                             newExtractorLink(
-                                                source = language.replace("dub","Audio").trim(),
-                                                name = "S${se}E${ep} ${quality}p (${language.replace("dub","Audio")})",
+                                                source = "$name ${language.replace("dub","Audio").trim()}",
+                                                name = if (se != null && ep != null) "$name S${se}E${ep} ${quality}p (${language.replace("dub","Audio").trim()})" else "$name ${quality}p (${language.replace("dub","Audio").trim()})",
                                                 url = link,
                                                 type = ExtractorLinkType.VIDEO
                                             ) {
-                                                this.headers = mapOf("Referer" to mainUrl)
+                                                this.headers = mapOf(
+                                                    "Referer" to mainUrl,
+                                                    "User-Agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)"
+                                                )
                                                 this.quality = quality
                                             }
                                         )

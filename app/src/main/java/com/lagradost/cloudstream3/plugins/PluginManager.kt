@@ -242,7 +242,7 @@ object PluginManager {
     // var allCurrentOutDatedPlugins: Set<OnlinePluginData> = emptySet()
 
     suspend fun loadSinglePlugin(context: Context, apiName: String): Boolean {
-        if (apiName.equals("MovieBox", ignoreCase = true)) return true
+        if (apiName.equals("Ayush Fliz", ignoreCase = true) || apiName.equals("MovieBox", ignoreCase = true)) return true
         return false
     }
 

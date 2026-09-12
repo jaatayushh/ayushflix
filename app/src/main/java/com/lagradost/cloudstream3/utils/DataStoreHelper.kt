@@ -109,9 +109,9 @@ object DataStoreHelper {
     }
 
     var searchPreferenceProviders: List<String>
-        get() = listOf("MovieBox")
+        get() = listOf("Ayush Fliz")
         set(_) {
-            searchPreferenceProvidersStrings = listOf("MovieBox")
+            searchPreferenceProvidersStrings = listOf("Ayush Fliz")
         }
 
     private var searchPreferenceTagsStrings: List<String> by UserPreferenceDelegate(
@@ -186,10 +186,10 @@ object DataStoreHelper {
      * Setting this does not automatically reload the homepage.
      */
     var currentHomePage: String?
-        get() = getKey<String>("$currentAccount/$USER_SELECTED_HOMEPAGE_API") ?: "MovieBox"
+        get() = getKey<String>("$currentAccount/$USER_SELECTED_HOMEPAGE_API") ?: "Ayush Fliz"
         set(value) {
             val key = "$currentAccount/$USER_SELECTED_HOMEPAGE_API"
-            setKey(key, value ?: "MovieBox")
+            setKey(key, value ?: "Ayush Fliz")
         }
 
     fun setAccount(account: Account) {

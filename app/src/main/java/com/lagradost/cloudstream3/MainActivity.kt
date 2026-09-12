@@ -1358,7 +1358,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                 }
                 APIHolder.addPluginMapping(movieBox)
                 APIHolder.initAll()
-                DataStoreHelper.currentHomePage = "MovieBox"
+                DataStoreHelper.currentHomePage = movieBox.name
                 mainPluginsLoadedEvent.invoke(true)
                 afterPluginsLoadedEvent.invoke(true)
             }
