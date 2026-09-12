@@ -251,7 +251,12 @@ object QualityDataHelper {
         )
         val sourcePriority = getSourcePriority(qualityProfile, linkData?.source)
 
-        return qualityPriority + sourcePriority
+        val name = linkData?.name.orEmpty()
+        val source = linkData?.source.orEmpty()
+        val isHindi = name.contains("hindi", ignoreCase = true) || source.contains("hindi", ignoreCase = true)
+        val languagePriority = if (isHindi) 50000 else 0
+
+        return qualityPriority + sourcePriority + languagePriority
     }
 
     private fun closestQuality(target: Int?): Qualities {

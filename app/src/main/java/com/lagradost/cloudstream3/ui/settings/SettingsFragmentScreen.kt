@@ -395,7 +395,7 @@ object SettingsFragmentScreen : Screen {
                 .focusOutline(),
         ) {
             ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-                Text(text = "Ayush Fliz v1.0.0")
+                Text(text = "Ayushflix v1.0.3")
             }
         }
     }

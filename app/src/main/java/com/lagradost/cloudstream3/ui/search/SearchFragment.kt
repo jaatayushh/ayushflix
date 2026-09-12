@@ -279,7 +279,7 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
         val searchExitIcon =
             binding.mainSearch.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
 
-        selectedApis = mutableSetOf("Ayush Fliz", "MovieBox")
+        selectedApis = mutableSetOf("Ayushflix", "Ayush Fliz", "MovieBox")
         binding.searchFilter.isVisible = false
 
         val settingsManager = context?.let { PreferenceManager.getDefaultSharedPreferences(it) }

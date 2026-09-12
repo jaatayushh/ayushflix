@@ -1,7 +1,7 @@
-# Ayush Fliz 🎬
+# Ayushflix 🎬
 
 <p align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Ayush Fliz Logo" width="120" height="120" style="border-radius: 24px;" />
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Ayushflix Logo" width="120" height="120" style="border-radius: 24px;" />
 </p>
 
 <p align="center">
@@ -18,10 +18,11 @@
 
 ## 🌟 Overview
 
-**Ayush Fliz** is an Android application designed for entertainment streaming. Unlike generic media centers that require searching for, installing, and updating external extension repositories, **Ayush Fliz comes pre-configured out-of-the-box** with a dedicated, high-performance streaming engine.
+**Ayushflix** is an Android application designed for entertainment streaming. Unlike generic media centers that require searching for, installing, and updating external extension repositories, **Ayushflix comes pre-configured out-of-the-box** with a dedicated, high-performance streaming engine.
 
-### 🛡️ Why Ayush Fliz?
+### 🛡️ Why Ayushflix?
 - **Zero Third-Party Redirects & Ads**: Stripped out all third-party ad links, unwanted browser redirect prompts, and external popups. Clean, instant playback without interruptions.
+- **Default Hindi Audio**: Automatically selects Hindi dub / audio track when hitting play, without having to manually switch from Tamil or other audio tracks.
 - **Dedicated Single-Provider Architecture**: Pre-installed with the fast MovieBox provider. No setup wizards, no repository URLs, and no manual plugin management required.
 - **Clean, Clutter-Free Interface**: All provider selectors, source switchers, and plugin manager settings have been replaced with a streamlined, modern UI.
 - **Cross-Platform Ready**: Tailored layouts for standard Android smartphones, tablets, and native **Android TV / Google TV** with 10-foot remote D-pad navigation.
@@ -31,7 +32,7 @@
 ## ✨ Features
 
 - **⚡ Instant Streaming**: High-quality video streams (1080p FHD, 720p HD, 480p SD, and 360p).
-- **🌐 Multi-Audio & Dubs**: Seamless support for multi-audio tracks including Hindi, English, Tamil, Telugu, and more.
+- **🌐 Multi-Audio & Dubs (Default Hindi)**: Seamless support for multi-audio tracks with automatic Hindi default audio selection, plus English, Tamil, Telugu, and more.
 - **💬 Subtitles On Demand**: Automatic multi-language subtitle fetching and formatting with customizable fonts, colors, and timing offsets.
 - **⬇️ Offline Downloads**: Built-in multi-threaded chunk download engine with background queue support and download resume.
 - **📺 Android TV Optimized**: Full Leanback interface with remote control support, continue watching row, and TV clock.
@@ -43,12 +44,12 @@
 ## 📲 Download & Installation
 
 ### Option 1: Direct APK Download
-1. Navigate to the [Releases](https://github.com/jaatayushh/ayushflix/releases) section or directly download [AyushFliz-v1.0.2.apk](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.2/AyushFliz-v1.0.2.apk).
+1. Navigate to the [Releases](https://github.com/jaatayushh/ayushflix/releases) section or directly download [Ayushflix-v1.0.3.apk](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.3/Ayushflix-v1.0.3.apk).
 2. Open the downloaded file on your Android device and allow "Install from Unknown Sources" if prompted.
-3. Launch **Ayush Fliz** and enjoy!
+3. Launch **Ayushflix** and enjoy!
 
 ### Option 2: Android TV Sideloading
-1. Download `AyushFliz-v1.0.2.apk` onto a USB flash drive or transfer it via apps like *Send Files to TV*.
+1. Download `Ayushflix-v1.0.3.apk` onto a USB flash drive or transfer it via apps like *Send Files to TV*.
 2. Open a file manager app on your TV (e.g., *File Commander*).
 3. Select and install the APK.
 
@@ -85,7 +86,7 @@
 ## 📂 Project Architecture
 
 ```
-AyushFliz/
+Ayushflix/
 ├── app/
 │   ├── src/main/java/com/lagradost/cloudstream3/
 │   │   ├── builtin/
@@ -105,7 +106,7 @@ AyushFliz/
 
 ## ⚖️ Disclaimer
 
-This project is created for educational and personal research purposes. Ayush Fliz does not host or distribute any video files on its servers. All media streams and metadata are provided by third-party services over public APIs.
+This project is created for educational and personal research purposes. Ayushflix does not host or distribute any video files on its servers. All media streams and metadata are provided by third-party services over public APIs.
 
 ---
 

@@ -874,7 +874,7 @@ class CS3IPlayer : IPlayer {
                 // This will not force higher quality videos to fail
                 // but will make the m3u8 pick the correct preferred
                 .setMaxVideoSize(Int.MAX_VALUE, maxVideoHeight ?: Int.MAX_VALUE)
-                .setPreferredAudioLanguage(null)
+                .setPreferredAudioLanguage("hi")
                 .build()
             return trackSelector
         }

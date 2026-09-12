@@ -63,7 +63,7 @@ class MovieBoxProvider : MainAPI() {
         var context: android.content.Context? = null
     }
     override var mainUrl = "https://api3.aoneroom.com"
-    override var name = "Ayush Fliz"
+    override var name = "Ayushflix"
     override val hasMainPage = true
     override var lang = "hi"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
@@ -798,11 +798,20 @@ class MovieBoxProvider : MainAPI() {
                 } catch (_: Exception) {}
             }
 
-            // Always add the original subject ID first as the default source with proper language name
+            // Add the original subject ID first as the base source
             subjectIds.add(0, Pair(originalSubjectId, originalLanguageName))
 
-            // Process each subjectId (including dubs)
-            for ((subjectId, language) in subjectIds) {
+            // Sort so Hindi audio dubs are ALWAYS prioritized first (played by default when play is clicked)
+            val sortedSubjectIds = subjectIds.sortedWith(
+                compareByDescending<Pair<String, String>> {
+                    it.second.contains("hindi", ignoreCase = true) || it.second.equals("hi", ignoreCase = true)
+                }.thenBy {
+                    if (it.first == originalSubjectId) 0 else 1
+                }
+            )
+
+            // Process each subjectId (Hindi first, then original and others)
+            for ((subjectId, language) in sortedSubjectIds) {
                 try {
                     val url = "$mainUrl/wefeed-mobile-bff/subject-api/play-info?subjectId=$subjectId&se=$season&ep=$episode"
 
