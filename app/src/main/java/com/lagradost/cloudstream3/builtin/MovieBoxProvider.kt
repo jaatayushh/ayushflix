@@ -106,19 +106,25 @@ class MovieBoxProvider : MainAPI() {
             }
         } catch (_: Exception) {}
 
+        // If system timezone is Indian, it's definitely India regardless of desktop/WSA default en-US locale
+        if (timezone.contains("Calcutta", ignoreCase = true) ||
+            timezone.contains("Kolkata", ignoreCase = true) ||
+            timezone.contains("India", ignoreCase = true) ||
+            timezone.contains("IST", ignoreCase = true)) {
+            return Pair("IN", timezone)
+        }
+
         try {
             val ctx = context ?: com.lagradost.cloudstream3.CloudStreamApp.context
             if (ctx != null) {
                 val tm = ctx.getSystemService(android.content.Context.TELEPHONY_SERVICE) as? android.telephony.TelephonyManager
                 val simCountry = tm?.simCountryIso?.trim()?.uppercase()
                 if (!simCountry.isNullOrBlank() && simCountry.length == 2) {
-                    region = simCountry
-                    return Pair(region, timezone)
+                    return Pair(simCountry, timezone)
                 }
                 val netCountry = tm?.networkCountryIso?.trim()?.uppercase()
                 if (!netCountry.isNullOrBlank() && netCountry.length == 2) {
-                    region = netCountry
-                    return Pair(region, timezone)
+                    return Pair(netCountry, timezone)
                 }
             }
         } catch (_: Exception) {}
@@ -127,8 +133,7 @@ class MovieBoxProvider : MainAPI() {
             val loc = java.util.Locale.getDefault()
             val locCountry = loc.country.trim().uppercase()
             if (locCountry.isNotBlank() && locCountry.length == 2) {
-                region = locCountry
-                return Pair(region, timezone)
+                return Pair(locCountry, timezone)
             }
         } catch (_: Exception) {}
 
@@ -622,19 +627,27 @@ class MovieBoxProvider : MainAPI() {
             else -> TvType.Movie
         }
 
-        val (tmdbId, imdbId) = identifyID(
-            title = title.substringBefore("(").substringBefore("["),
-            year = releaseDate?.take(4)?.toIntOrNull(),
-            imdbRatingValue = imdbRating?.toDouble(),
-        )
+        val (tmdbId, imdbId) = try {
+            identifyID(
+                title = title.substringBefore("(").substringBefore("["),
+                year = releaseDate?.take(4)?.toIntOrNull(),
+                imdbRatingValue = imdbRating?.toDouble(),
+            )
+        } catch (_: Exception) {
+            Pair(null, null)
+        }
 
-        val logoUrl = fetchTmdbLogoUrl(
-            tmdbAPI = "https://api.themoviedb.org/3",
-            apiKey = "98ae14df2b8d8f8f8136499daf79f0e0",
-            type = type,
-            tmdbId = tmdbId,
-            appLangCode = "en"
-        )
+        val logoUrl = try {
+            fetchTmdbLogoUrl(
+                tmdbAPI = "https://api.themoviedb.org/3",
+                apiKey = "98ae14df2b8d8f8f8136499daf79f0e0",
+                type = type,
+                tmdbId = tmdbId,
+                appLangCode = "en"
+            )
+        } catch (_: Exception) {
+            null
+        }
 
         val meta = if (!imdbId.isNullOrBlank()) fetchMetaData(imdbId, type) else null
         val metaVideos = meta?.get("videos")?.toList() ?: emptyList()
@@ -1143,15 +1156,19 @@ private suspend fun searchAndPick(
 ): Pair<Int?, String?> {
 
     suspend fun doSearch(endpoint: String, extraParams: String = ""): org.json.JSONArray? {
-        val url = buildString {
-            append("https://api.themoviedb.org/3/").append(endpoint)
-            append("?api_key=").append("1865f43a0549ca50d341dd9ab8b29f49")
-            append(extraParams)
-            append("&include_adult=false&page=1")
-            append("&random=").append(Random.nextInt())
+        return try {
+            val url = buildString {
+                append("https://api.themoviedb.org/3/").append(endpoint)
+                append("?api_key=").append("1865f43a0549ca50d341dd9ab8b29f49")
+                append(extraParams)
+                append("&include_adult=false&page=1")
+                append("&random=").append(Random.nextInt())
+            }
+            val text = app.get(url, timeout = 2).text
+            JSONObject(text).optJSONArray("results")
+        } catch (_: Exception) {
+            null
         }
-        val text = app.get(url).text
-        return JSONObject(text).optJSONArray("results")
     }
 
     val multiResults = doSearch("search/multi", "&query=${URLEncoder.encode(normTitle, "UTF-8")}" + (if (year != null) "&year=$year" else ""))
@@ -1235,9 +1252,13 @@ private suspend fun searchAndPick(
     // fetch details for external_ids
     val detailKind = if (bestIsTv) "tv" else "movie"
     val detailUrl = "https://api.themoviedb.org/3/$detailKind/$bestId?api_key=1865f43a0549ca50d341dd9ab8b29f49&append_to_response=external_ids&random=${Random.nextInt()}"
-    val detailText = app.get(detailUrl).text
-    val detailJson = JSONObject(detailText)
-    val imdbId = detailJson.optJSONObject("external_ids")?.optString("imdb_id")
+    val detailJson = try {
+        val detailText = app.get(detailUrl, timeout = 2).text
+        JSONObject(detailText)
+    } catch (_: Exception) {
+        null
+    }
+    val imdbId = detailJson?.optJSONObject("external_ids")?.optString("imdb_id")
 
     return Pair(bestId, imdbId)
 }
