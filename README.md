@@ -52,7 +52,7 @@ You can run Ayushflix natively on **Windows 10 and Windows 11** without heavy em
 4. Go to **Advanced settings** (or Developer tab) and toggle **Developer mode** to **ON**.
 
 ### 3. Install Ayushflix (Easiest Way - 1 Click):
-1. Download and install **[WSA-Pacman](https://github.com/Lana-S/WSA-Pacman/releases/latest)** (a lightweight 1-click APK installer for WSA).
+1. Download and install **[WSA-Pacman](https://github.com/alesimula/wsa_pacman/releases/latest)** (a lightweight 1-click APK installer for WSA).
 2. Download [**Ayushflix-v1.0.5.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.5/Ayushflix-v1.0.5.apk).
 3. **Double-click** `Ayushflix-v1.0.5.apk` on Windows -> click **Install**.
 4. **Done!** Ayushflix will appear directly in your Windows Start Menu and taskbar as a native desktop window with full 4K playback and keyboard/mouse navigation!
