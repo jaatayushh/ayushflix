@@ -5,12 +5,12 @@
 </p>
 
 <p align="center">
-  <strong>The Ultimate Dedicated, Ad-Free Streaming Experience for Android & Android TV.</strong>
+  <strong>The Ultimate Dedicated, Ad-Free Streaming Experience for Android, Android TV & Windows.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/jaatayushh/ayushflix/releases"><img src="https://img.shields.io/github/v/release/jaatayushh/ayushflix?style=for-the-badge&color=E50914" alt="Release" /></a>
-  <a href="https://github.com/jaatayushh/ayushflix"><img src="https://img.shields.io/badge/Platform-Android%20%7C%20Android%20TV-007ACC?style=for-the-badge" alt="Platform" /></a>
+  <a href="https://github.com/jaatayushh/ayushflix"><img src="https://img.shields.io/badge/Platform-Android%20%7C%20Windows-007ACC?style=for-the-badge" alt="Platform" /></a>
   <a href="https://github.com/jaatayushh/ayushflix/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-green?style=for-the-badge" alt="License" /></a>
 </p>
 
@@ -18,14 +18,14 @@
 
 ## 🌟 Overview
 
-**Ayushflix** is an Android application designed for entertainment streaming. Unlike generic media centers that require searching for, installing, and updating external extension repositories, **Ayushflix comes pre-configured out-of-the-box** with a dedicated, high-performance streaming engine.
+**Ayushflix** is an entertainment streaming application available for both **Android** and **Windows PC**. Unlike generic media centers that require searching for, installing, and updating external extension repositories, **Ayushflix comes pre-configured out-of-the-box** with a dedicated, high-performance streaming engine.
 
 ### 🛡️ Why Ayushflix?
 - **Zero Third-Party Redirects & Ads**: Stripped out all third-party ad links, unwanted browser redirect prompts, and external popups. Clean, instant playback without interruptions.
 - **Default Hindi Audio**: Automatically selects Hindi dub / audio track when hitting play, without having to manually switch from Tamil or other audio tracks.
 - **Dedicated Single-Provider Architecture**: Pre-installed with the fast MovieBox provider. No setup wizards, no repository URLs, and no manual plugin management required.
 - **Clean, Clutter-Free Interface**: All provider selectors, source switchers, and plugin manager settings have been replaced with a streamlined, modern UI.
-- **Cross-Platform Ready**: Tailored layouts for standard Android smartphones, tablets, and native **Android TV / Google TV** with 10-foot remote D-pad navigation.
+- **Cross-Platform Ready**: Tailored for Android smartphones, Android TV / Google TV, and standalone **Windows 10 / 11 Desktop** (`.exe`).
 
 ---
 
@@ -34,21 +34,26 @@
 - **⚡ Instant Streaming**: High-quality video streams (1080p FHD, 720p HD, 480p SD, and 360p).
 - **🌐 Multi-Audio & Dubs (Default Hindi)**: Seamless support for multi-audio tracks with automatic Hindi default audio selection, plus English, Tamil, Telugu, and more.
 - **💬 Subtitles On Demand**: Automatic multi-language subtitle fetching and formatting with customizable fonts, colors, and timing offsets.
+- **💻 Native Windows Desktop Client**: Standalone lightweight `.exe` with zero installation required, hardware-accelerated playback via Microsoft Edge WebView2, and keyboard controls.
 - **⬇️ Offline Downloads**: Built-in multi-threaded chunk download engine with background queue support and download resume.
 - **📺 Android TV Optimized**: Full Leanback interface with remote control support, continue watching row, and TV clock.
-- **🎨 Modern Player**: ExoPlayer & Media3 backed video player with gesture controls (brightness/volume swipes), playback speed controls, and picture-in-picture (PiP).
+- **🎨 Modern Player**: ExoPlayer / Media3 (Android) and Dash.js / Hls.js (Windows) backed video player.
 - **🔒 Privacy First**: No telemetry, no tracker SDKs, and no account requirements.
 
 ---
 
 ## 📲 Download & Installation
 
-### Option 1: Direct APK Download
-1. Navigate to the [Releases](https://github.com/jaatayushh/ayushflix/releases) section or directly download [Ayushflix-v1.0.4.apk](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.4/Ayushflix-v1.0.4.apk).
+### 💻 Windows Desktop (PC)
+1. Download the standalone executable: **[Ayushflix-Windows-v1.0.4.exe](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.4/Ayushflix-Windows-v1.0.4.exe)**.
+2. Double-click `Ayushflix-Windows-v1.0.4.exe` to run. No installation or setup needed!
+
+### 📱 Android Devices
+1. Download **[Ayushflix-v1.0.4.apk](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.4/Ayushflix-v1.0.4.apk)**.
 2. Open the downloaded file on your Android device and allow "Install from Unknown Sources" if prompted.
 3. Launch **Ayushflix** and enjoy!
 
-### Option 2: Android TV Sideloading
+### 📺 Android TV Sideloading
 1. Download `Ayushflix-v1.0.4.apk` onto a USB flash drive or transfer it via apps like *Send Files to TV*.
 2. Open a file manager app on your TV (e.g., *File Commander*).
 3. Select and install the APK.
@@ -87,7 +92,7 @@
 
 ```
 Ayushflix/
-├── app/
+├── app/                              # Android / Android TV application
 │   ├── src/main/java/com/lagradost/cloudstream3/
 │   │   ├── builtin/
 │   │   │   └── MovieBoxProvider.kt   # Core streaming engine (clean, ad-free)
@@ -98,6 +103,11 @@ Ayushflix/
 │   │   │   └── result/               # Media details & episode selector
 │   │   └── MainActivity.kt           # Root activity & initialization
 │   └── src/main/res/                 # Icons, drawables, layouts, localized strings
+├── desktop/                          # Windows Native Desktop application
+│   ├── api.py                        # MovieBox API client (crypto signature, tokens, streams)
+│   ├── proxy.py                      # Localhost streaming proxy & CloudFront cookie signer
+│   ├── app.py                        # Edge WebView2 desktop application entry point
+│   └── ui/                           # Netflix-style dark web UI & custom Dash/HLS player
 ├── library/                          # Common models, extractor APIs, networking
 └── gradle/                           # Dependency version catalog
 ```

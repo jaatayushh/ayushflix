@@ -226,3 +226,10 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/kotlin,java,android,androidstudio,visualstudiocode
+
+# Python & PyInstaller
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec
+dist/
