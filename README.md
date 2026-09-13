@@ -26,12 +26,36 @@ Unlike generic media centers that require hunting down third-party repository UR
 
 ---
 
-## ⚡ Direct Download (v1.0.4)
+## ⚡ Direct Download (v1.0.5)
 
 | Platform | Format | Size | Architecture | Direct Download |
 | :--- | :---: | :---: | :---: | :---: |
-| 📱 **Android Smartphone / Tablet** | `.apk` | **~52 MB** | `arm64-v8a`, `armeabi-v7a` | [**Download Ayushflix-v1.0.4.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.4/Ayushflix-v1.0.4.apk) |
-| 📺 **Android TV / Google TV / FireStick** | `.apk` | **~52 MB** | Native 10-Foot Leanback UI | [**Download Ayushflix-v1.0.4.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.4/Ayushflix-v1.0.4.apk) |
+| 📱 **Android Smartphone / Tablet** | `.apk` | **~50 MB** | `arm64-v8a`, `armeabi-v7a` | [**Download Ayushflix-v1.0.5.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.5/Ayushflix-v1.0.5.apk) |
+| 📺 **Android TV / Google TV / FireStick** | `.apk` | **~50 MB** | Native 10-Foot Leanback UI | [**Download Ayushflix-v1.0.5.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.5/Ayushflix-v1.0.5.apk) |
+| 🖥️ **Windows 10 / 11 (WSA / Emulator)** | `.apk` | **~50 MB** | Native Desktop Window | [**Download Ayushflix-v1.0.5.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.5/Ayushflix-v1.0.5.apk) |
+
+---
+
+## 🖥️ How to Run Ayushflix on Windows (WSA Guide)
+
+You can run Ayushflix natively on **Windows 10 and Windows 11** without heavy emulators using **Windows Subsystem for Android (WSA)**:
+
+### 1. Requirements:
+- Windows 10 (Build 19045+) or Windows 11.
+- Enable **Virtual Machine Platform** in Windows (*Turn Windows features on or off*).
+- Virtualization enabled in your BIOS/UEFI.
+
+### 2. Setup WSA with Magisk & GApps:
+1. Extract your downloaded WSA build (e.g. `WSA-with-magisk-v30.6-...zip`) to a permanent folder (e.g. `C:\WSA`).
+2. Right-click **`Run.bat`** (or `Install.ps1`) and select **Run as administrator**.
+3. Once installation finishes, open **Windows Subsystem for Android Settings** from your Start Menu.
+4. Go to **Advanced settings** (or Developer tab) and toggle **Developer mode** to **ON**.
+
+### 3. Install Ayushflix (Easiest Way - 1 Click):
+1. Download and install **[WSA-Pacman](https://github.com/Lana-S/WSA-Pacman/releases/latest)** (a lightweight 1-click APK installer for WSA).
+2. Download [**Ayushflix-v1.0.5.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.5/Ayushflix-v1.0.5.apk).
+3. **Double-click** `Ayushflix-v1.0.5.apk` on Windows -> click **Install**.
+4. **Done!** Ayushflix will appear directly in your Windows Start Menu and taskbar as a native desktop window with full 4K playback and keyboard/mouse navigation!
 
 ---
 
