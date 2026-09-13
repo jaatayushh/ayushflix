@@ -17,6 +17,7 @@ import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.LoadResponse.Companion.addImdbId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTMDbId
 import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.MainPageData
 import com.lagradost.cloudstream3.MainPageRequest
 import com.lagradost.cloudstream3.Score
 import com.lagradost.cloudstream3.SearchResponse
@@ -95,6 +96,51 @@ class MovieBoxProvider : MainAPI() {
     
     val deviceId = generateDeviceId()
 
+    fun getUserRegionInfo(): Pair<String, String> {
+        var region = "IN"
+        var timezone = "Asia/Calcutta"
+        try {
+            val tz = java.util.TimeZone.getDefault()
+            if (tz != null && !tz.id.isNullOrBlank()) {
+                timezone = tz.id
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val ctx = context ?: com.lagradost.cloudstream3.CloudStreamApp.context
+            if (ctx != null) {
+                val tm = ctx.getSystemService(android.content.Context.TELEPHONY_SERVICE) as? android.telephony.TelephonyManager
+                val simCountry = tm?.simCountryIso?.trim()?.uppercase()
+                if (!simCountry.isNullOrBlank() && simCountry.length == 2) {
+                    region = simCountry
+                    return Pair(region, timezone)
+                }
+                val netCountry = tm?.networkCountryIso?.trim()?.uppercase()
+                if (!netCountry.isNullOrBlank() && netCountry.length == 2) {
+                    region = netCountry
+                    return Pair(region, timezone)
+                }
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val loc = java.util.Locale.getDefault()
+            val locCountry = loc.country.trim().uppercase()
+            if (locCountry.isNotBlank() && locCountry.length == 2) {
+                region = locCountry
+                return Pair(region, timezone)
+            }
+        } catch (_: Exception) {}
+
+        return Pair(region, timezone)
+    }
+
+    private fun getClientInfoJson(): String {
+        val (region, timezone) = getUserRegionInfo()
+        return """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"$region","timezone":"$timezone","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent()
+    }
+
+
     data class BrandModel(val brand: String, val model: String)
 
     private val brandModels = mapOf(
@@ -139,7 +185,7 @@ class MovieBoxProvider : MainAPI() {
                 "content-type" to "application/json",
                 "x-client-token" to xClientToken,
                 "x-tr-signature" to xTrSignature,
-                "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+                "x-client-info" to getClientInfoJson(),
                 "x-client-status" to "0"
             )
             val res = app.get(rankingUrl, headers = headers)
@@ -235,47 +281,64 @@ class MovieBoxProvider : MainAPI() {
         }
     }
 
-    override val mainPage = mainPageOf(
-        "4516404531735022304" to "Trending",
-        "5692654647815587592" to "Trending in Cinema",
-        "414907768299210008"  to "Bollywood",
-        "3859721901924910512" to "South Indian",
-        "8019599703232971616" to "Hollywood",
-        "4741626294545400336" to "Top Series This Week",
-        "8434602210994128512" to "Anime",
-        "1255898847918934600" to "Reality TV",
-        "4903182713986896328" to "Indian Drama",
-        "7878715743607948784" to "Korean Drama",
-        "8788126208987989488" to "Chinese Drama",
-        "3910636007619709856" to "Western TV",
-        "5177200225164885656" to "Turkish Drama",
-        "1|1" to "Movies",
-        "1|2" to "Series",
-        "1|1006" to "Anime",
-        "1|1;country=India" to "Indian (Movies)",
-        "1|2;country=India" to "Indian (Series)",
-        "1|1;classify=Hindi dub;country=United States" to "USA (Movies)",
-        "1|2;classify=Hindi dub;country=United States" to "USA (Series)",
-        "1|1;country=Japan" to "Japan (Movies)",
-        "1|2;country=Japan" to "Japan (Series)",
-        "1|1;country=China" to "China (Movies)",
-        "1|2;country=China" to "China (Series)",
-        "1|1;country=Philippines" to "Philippines (Movies)",
-        "1|2;country=Philippines" to "Philippines (Series)",
-        "1|1;country=Thailand" to "Thailand(Movies)",
-        "1|2;country=Thailand" to "Thailand(Series)",
-        "1|1;country=Nigeria" to "Nollywood (Movies)",
-        "1|2;country=Nigeria" to "Nollywood (Series)",
-        "1|1;country=Korea" to "South Korean (Movies)",
-        "1|2;country=Korea" to "South Korean (Series)",
-        "1|1;classify=Hindi dub;genre=Action" to "Action (Movies)",
-        "1|1;classify=Hindi dub;genre=Crime" to "Crime (Movies)",
-        "1|1;classify=Hindi dub;genre=Comedy" to "Comedy (Movies)",
-        "1|1;classify=Hindi dub;genre=Romance" to "Romance (Movies)",
-        "1|2;classify=Hindi dub;genre=Crime" to "Crime (Series)",
-        "1|2;classify=Hindi dub;genre=Comedy" to "Comedy (Series)",
-        "1|2;classify=Hindi dub;genre=Romance" to "Romance (Series)",
-        )
+    override val mainPage: List<MainPageData>
+        get() = buildRegionalMainPage()
+
+    private fun buildRegionalMainPage(): List<MainPageData> {
+        val (region, _) = getUserRegionInfo()
+        val list = mutableListOf<Pair<String, String>>()
+
+        if (region == "IN") {
+            list.add("4516404531735022304" to "Trending in India")
+            list.add("414907768299210008" to "Bollywood")
+            list.add("3859721901924910512" to "South Indian (Hindi Dub)")
+            list.add("5692654647815587592" to "Trending in Cinema")
+            list.add("4903182713986896328" to "Indian Drama")
+            list.add("8019599703232971616" to "Hollywood")
+            list.add("4741626294545400336" to "Top Series This Week")
+            list.add("1|1;country=India" to "Indian (Movies)")
+            list.add("1|2;country=India" to "Indian (Series)")
+            list.add("1|1;classify=Hindi dub;country=United States" to "Hollywood in Hindi (Movies)")
+            list.add("1|2;classify=Hindi dub;country=United States" to "Hollywood in Hindi (Series)")
+            list.add("8434602210994128512" to "Anime")
+            list.add("1|1;classify=Hindi dub;genre=Action" to "Action (Hindi Dub)")
+            list.add("1|1;classify=Hindi dub;genre=Comedy" to "Comedy (Hindi Dub)")
+            list.add("1|1;classify=Hindi dub;genre=Crime" to "Crime & Thriller")
+            list.add("7878715743607948784" to "Korean Drama")
+            list.add("8788126208987989488" to "Chinese Drama")
+            list.add("3910636007619709856" to "Western TV")
+            list.add("5177200225164885656" to "Turkish Drama")
+            list.add("1|1" to "All Movies")
+            list.add("1|2" to "All Series")
+        } else {
+            val regionDisplayName = try {
+                val loc = java.util.Locale.Builder().setRegion(region).build()
+                loc.displayCountry.ifBlank { "You" }
+            } catch (_: Exception) { "You" }
+
+            list.add("4516404531735022304" to "Trending in $regionDisplayName")
+            list.add("5692654647815587592" to "Trending in Cinema")
+            list.add("8019599703232971616" to "Hollywood & Global Hits")
+            list.add("4741626294545400336" to "Top Series This Week")
+            list.add("3910636007619709856" to "Western TV")
+            list.add("1|1;country=United States" to "Popular US Movies")
+            list.add("1|2;country=United States" to "Popular US Series")
+            list.add("8434602210994128512" to "Anime")
+            list.add("1|1;genre=Action" to "Action Movies")
+            list.add("1|1;genre=Comedy" to "Comedy Movies")
+            list.add("1|1;genre=Crime" to "Crime & Mystery")
+            list.add("7878715743607948784" to "Korean Drama")
+            list.add("8788126208987989488" to "Chinese Drama")
+            list.add("414907768299210008" to "Bollywood Spotlight")
+            list.add("1|1;country=Korea" to "South Korean Movies")
+            list.add("1|1;country=Japan" to "Japanese Cinema")
+            list.add("1|1;country=Philippines" to "Philippines")
+            list.add("1|1;country=Nigeria" to "Nollywood")
+            list.add("1|1" to "All Movies")
+            list.add("1|2" to "All Series")
+        }
+        return list.map { (data, name) -> MainPageData(name = name, data = data) }
+    }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val perPage = 15
@@ -320,7 +383,7 @@ class MovieBoxProvider : MainAPI() {
             "connection" to "keep-alive",
             "x-client-token" to xClientToken,
             "x-tr-signature" to xTrSignature,
-            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+            "x-client-info" to getClientInfoJson(),
             "x-client-status" to "0",
             "x-play-mode" to "2" // Optional, if needed for specific API behavior
         )
@@ -332,7 +395,7 @@ class MovieBoxProvider : MainAPI() {
             "connection" to "keep-alive",
             "x-client-token" to xClientToken,
             "x-tr-signature" to getxTrSignature,
-            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+            "x-client-info" to getClientInfoJson(),
             "x-client-status" to "0",
         )
 
@@ -407,7 +470,7 @@ class MovieBoxProvider : MainAPI() {
             "connection" to "keep-alive",
             "x-client-token" to xClientToken,
             "x-tr-signature" to xTrSignature,
-            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+            "x-client-info" to getClientInfoJson(),
             "x-client-status" to "0"
         )
         if (!token.isNullOrBlank()) {
@@ -483,7 +546,7 @@ class MovieBoxProvider : MainAPI() {
             "connection" to "keep-alive",
             "x-client-token" to xClientToken,
             "x-tr-signature" to xTrSignature,
-            "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+            "x-client-info" to getClientInfoJson(),
             "x-client-status" to "0",
             "x-play-mode" to "2"
         )
@@ -744,7 +807,7 @@ class MovieBoxProvider : MainAPI() {
                 "connection" to "keep-alive",
                 "x-client-token" to subjectXClientToken,
                 "x-tr-signature" to subjectXTrSignature,
-                "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+                "x-client-info" to getClientInfoJson(),
                 "x-client-status" to "0"
             )
             if (!token.isNullOrBlank()) {
@@ -824,7 +887,7 @@ class MovieBoxProvider : MainAPI() {
                         "connection" to "keep-alive",
                         "x-client-token" to xClientToken,
                         "x-tr-signature" to xTrSignature,
-                        "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+                        "x-client-info" to getClientInfoJson(),
                         "x-client-status" to "0"
                     )
                     if (!token.isNullOrBlank()) {
@@ -911,7 +974,7 @@ class MovieBoxProvider : MainAPI() {
                                 val subHeaders = mutableMapOf(
                                     "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
                                     "Accept" to "",
-                                    "x-client-info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+                                    "x-client-info" to getClientInfoJson(),
                                     "X-Client-Status" to "0",
                                     "Content-Type" to "",
                                     "X-Client-Token" to xClientToken,
@@ -945,7 +1008,7 @@ class MovieBoxProvider : MainAPI() {
                                 val subHeaders1 = mutableMapOf(
                                     "User-Agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
                                     "Accept" to "",
-                                    "X-Client-Info" to """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"IN","timezone":"Asia/Calcutta","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent(),
+                                    "X-Client-Info" to getClientInfoJson(),
                                     "X-Client-Status" to "0",
                                     "Content-Type" to "",
                                     "X-Client-Token" to xClientToken1,
