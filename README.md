@@ -128,11 +128,31 @@ Ayushflix/
 
 ---
 
-## ⚖️ Legal Disclaimer
+## ⚖️ Legal Disclaimer & Non-Hosting Notice
 
-Ayushflix is an open-source project created strictly for educational, personal research, and software development purposes. 
+> [!IMPORTANT]
+> **Ayushflix does NOT host, upload, store, archive, or broadcast any media, videos, audio, or copyrighted content.**
 
-Ayushflix does **not** host, store, upload, or manage any media files, video streams, or copyrighted material on its own servers. All content and metadata are fetched dynamically via public third-party APIs. Any copyright inquiries or complaints regarding hosted streams should be addressed directly to the third-party providers hosting the respective files.
+### 1. Pure Client-Side Indexer & Aggregator
+Ayushflix operates strictly as a specialized client-side user interface and search indexer—functionally identical to a web browser (e.g., Google Chrome, Firefox) or search engine (e.g., Google, Bing). It merely queries, parses, and plays publicly accessible links that are already indexed and openly hosted on third-party web servers across the internet.
+
+### 2. Zero Hosting & Storage Policy
+- **No Media Servers**: Ayushflix does not own, manage, maintain, or operate any media servers, CDNs, databases, or cloud storage facilities containing video files.
+- **No Video Uploading**: Neither the creators, contributors, nor the software itself ever upload or distribute copyrighted material.
+- **Stateless Hyperlink Resolution**: The software only resolves public hyperlinks provided by external third-party APIs. Under established international internet and digital copyright jurisprudence (including EU and US rulings regarding hyperlinks and web indexing), linking to publicly accessible third-party web content does not constitute copyright infringement or illicit distribution.
+
+### 3. Third-Party Liability & DMCA Inquiries
+- Ayushflix has **no affiliation, partnership, sponsorship, or association** with any third-party websites, providers, or stream hosts accessed through the app.
+- Because Ayushflix does not host any media, the developers have neither the technical capability nor the legal authority to remove content hosted on independent external servers.
+- Any copyright owners seeking removal or takedown of specific media files must contact the actual web host or server provider physically hosting the content.
+
+### 4. Non-Commercial & Educational Purpose
+- Ayushflix is 100% free, non-commercial, and open-source software distributed under the **GNU General Public License v3.0**.
+- There are **no advertisements, no paid subscriptions, no paywalls, and zero monetization** of any kind.
+- The project is created solely for personal research, educational study of Android Media3/ExoPlayer client architecture, and software development experimentation.
+
+### 5. End-User Compliance
+Users are solely responsible for ensuring that their use of this software complies with all applicable intellectual property, copyright, and digital communications regulations in their respective country or jurisdiction.
 
 ---
 
