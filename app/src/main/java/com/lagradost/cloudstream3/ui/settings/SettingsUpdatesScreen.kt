@@ -166,63 +166,6 @@ object SettingsUpdatesScreen : SearchableSettings {
                         }
                     ),
                 )
-            ),
-            Preference.PreferenceGroup(
-                title = stringResource(R.string.pref_category_extensions),
-                preferenceItems = persistentListOf(
-                    Preference.PreferenceItem.SwitchPreference(
-                        title = stringResource(R.string.automatic_plugin_updates),
-                        icon = painterResource(R.drawable.extension_24px),
-                        preference = settings.plugins.autoUpdate,
-                    ),
-
-                    Preference.PreferenceItem.ListPreference(
-                        title = stringResource(R.string.automatic_plugin_download),
-                        subtitle = "%s\n" + stringResource(R.string.automatic_plugin_download_summary),
-                        icon = painterResource(R.drawable.extention_renew2),
-                        entries = AutoDownloadMode.entries.map { it.value }.sorted()
-                            .zip(stringArrayResource((R.array.auto_download_plugin))).toMap(),
-                        preference = settings.plugins.autoDownload
-                    ),
-                    Preference.PreferenceItem.TextPreference(
-                        title = stringResource(R.string.update_plugins),
-                        subtitle = stringResource(R.string.update_plugins_manually),
-                        icon = painterResource(R.drawable.extention_download),
-                        onClick = {
-                            ioSafe {
-                                PluginManager.___DO_NOT_CALL_FROM_A_PLUGIN_manuallyReloadAndUpdatePlugins(
-                                    activity ?: return@ioSafe
-                                )
-                            }
-                        }
-                    ),
-                    Preference.PreferenceItem.TextPreference(
-                        title = stringResource(R.string.test_extensions),
-                        subtitle = stringResource(R.string.test_extensions_summary),
-                        icon = painterResource(R.drawable.baseline_network_ping_24),
-                        onClick = {
-                            activity?.navigate(R.id.navigation_test_providers)
-                        })
-                )
-            ),
-            Preference.PreferenceGroup(
-                title = stringResource(R.string.pref_category_actions),
-                preferenceItems = persistentListOf(
-                    Preference.PreferenceItem.TextPreference(
-                        title = stringResource(R.string.show_log_cat),
-                        icon = painterResource(R.drawable.article_24px),
-                        onClick = {
-                            showDialog = true
-                        }
-                    ),
-                    Preference.PreferenceItem.TextPreference(
-                        title = stringResource(R.string.redo_setup_process),
-                        icon = painterResource(R.drawable.construction_24px),
-                        onClick = {
-                            activity?.navigate(R.id.navigation_setup_language)
-                        }
-                    ),
-                )
             )
         )
     }

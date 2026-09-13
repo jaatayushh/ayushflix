@@ -44,12 +44,12 @@
 ## 📲 Download & Installation
 
 ### Option 1: Direct APK Download
-1. Navigate to the [Releases](https://github.com/jaatayushh/ayushflix/releases) section or directly download [Ayushflix-v1.0.3.apk](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.3/Ayushflix-v1.0.3.apk).
+1. Navigate to the [Releases](https://github.com/jaatayushh/ayushflix/releases) section or directly download [Ayushflix-v1.0.4.apk](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.4/Ayushflix-v1.0.4.apk).
 2. Open the downloaded file on your Android device and allow "Install from Unknown Sources" if prompted.
 3. Launch **Ayushflix** and enjoy!
 
 ### Option 2: Android TV Sideloading
-1. Download `Ayushflix-v1.0.3.apk` onto a USB flash drive or transfer it via apps like *Send Files to TV*.
+1. Download `Ayushflix-v1.0.4.apk` onto a USB flash drive or transfer it via apps like *Send Files to TV*.
 2. Open a file manager app on your TV (e.g., *File Commander*).
 3. Select and install the APK.
 

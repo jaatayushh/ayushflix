@@ -110,13 +110,8 @@ object SettingsGeneralScreen : SearchableSettings {
             )
         }
 
-        val default = AllLanguagesName to stringResource(R.string.all_languages_preference)
-        val languages = APIHolder.apis.withLock {
-            APIHolder.apis.map { api -> api.lang }.distinct()
-        }.sortedBy { fromTagToLanguageName(it) ?: it }
-
         return persistentListOf(
-            Preference.PreferenceGroup(title = stringResource(R.string.extension_language), preferenceItems = persistentListOf(
+            Preference.PreferenceGroup(title = stringResource(R.string.app_language), preferenceItems = persistentListOf(
                 Preference.PreferenceItem.BasicListPreference(
                     value = locale,
                     entries = appLanguages.associate { (name, code) -> (code to (name to code).nameNextToFlagEmoji()) },
@@ -127,16 +122,6 @@ object SettingsGeneralScreen : SearchableSettings {
                         activity?.recreate()
                     },
                     subtitleProvider = { v, e -> e[v] ?: getCurrentLocale(LocalContext.current) }
-                ),
-                Preference.PreferenceItem.MultiSelectListPreference(
-                    title = stringResource(R.string.provider_lang_settings),
-                    icon = painterResource(R.drawable.plugin_lang),
-                    entries = mapOf(default) + languages.associateWith { lang ->
-                        (getNameNextToFlagEmoji(
-                            lang
-                        ) ?: lang)
-                    },
-                    preference = settings.provider.extensionLanguages
                 ),
                 Preference.PreferenceItem.MultiSelectListPreference(
                     title = stringResource(R.string.preferred_media_settings),
@@ -191,49 +176,6 @@ object SettingsGeneralScreen : SearchableSettings {
                     ),
                 )
             ),
-
-            Preference.PreferenceGroup(
-                title = stringResource(R.string.pref_category_bypass),
-                preferenceItems = persistentListOf(
-                    Preference.PreferenceItem.TextPreference(
-                        title = stringResource(R.string.add_site_pref),
-                        subtitle = stringResource(R.string.add_site_summary),
-                        icon = painterResource(R.drawable.copy_all_24px),
-                        onClick = {
-                            // TODO refactor into compose
-                            if (SettingsGeneral.getCurrent().isEmpty()) {
-                                SettingsGeneral.showAdd()
-                            } else {
-                                SettingsGeneral.showAddOrDelete()
-                            }
-                        }
-                    ),
-                    Preference.PreferenceItem.ListPreference(
-                        title = stringResource(R.string.dns_pref),
-                        subtitle = stringResource(R.string.dns_pref_summary),
-                        icon = painterResource(R.drawable.dns_24px),
-                        preference = settings.general.dns,
-                        entries = integerArrayResource(R.array.dns_pref_values).zip(
-                            stringArrayResource(R.array.dns_pref)
-                        ).toMap(),
-                        onValueChanged = {
-                            (CloudStreamApp.context)?.let { ctx ->
-                                app.initClient(ctx, ignoreSSL = false)
-                                @OptIn(UnsafeSSL::class)
-                                insecureApp.initClient(ctx, ignoreSSL = true)
-                            }
-                            return@ListPreference true
-                        },
-                    ),
-                    Preference.PreferenceItem.SwitchPreference(
-                        title = stringResource(R.string.jsdelivr_proxy),
-                        subtitle = stringResource(R.string.jsdelivr_proxy_summary),
-                        icon = painterResource(R.drawable.wifi_proxy_24px),
-                        preference = settings.general.jsdelivrProxy
-                    )
-                )
-            ),
-
 
             Preference.PreferenceItem.TextPreference(
                 title = stringResource(R.string.benene),

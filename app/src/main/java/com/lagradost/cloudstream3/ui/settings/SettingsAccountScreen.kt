@@ -43,13 +43,8 @@ import kotlinx.collections.immutable.persistentListOf
 
 object SettingsAccountScreen : SearchableSettings, BiometricAuthenticator.BiometricCallback {
     val syncApis = persistentListOf(
-        SyncRepo(malApi),
-        SyncRepo(kitsuApi),
-        SyncRepo(aniListApi),
-        SyncRepo(simklApi),
         SubtitleRepo(openSubtitlesApi),
         SubtitleRepo(subDlApi),
-        PlainAuthRepo(animeSkipApi),
     )
     private fun updateAuthPreference(context: Context, enabled: Boolean) {
         val settings = AppSettings(context)
