@@ -142,9 +142,19 @@ class MovieBoxProvider : MainAPI() {
 
     private fun getClientInfoJson(): String {
         val (region, timezone) = getUserRegionInfo()
-        return """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"$region","timezone":"$timezone","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"0","X-Content-Mode":"0"}""".trimIndent()
+        return """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"$region","timezone":"$timezone","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"1","X-Content-Mode":"1"}""".trimIndent()
     }
 
+    private val adultPattern = Regex(
+        """(?i)\b(porn|porno|xxx|adult|erotic|erotica|hentai|nsfw|18\+|uncensored|sensual|nude|nudity|onlyfans|softcore|hardcore|fetish|ullu|kooku|primeplay|hotshots|besharams|voovi|moodx|jav|b-grade|playboy|lust\s*stories|rabbit\s*movies|hunters\s*app|chikooflix|redprime|sex|sexy\s*scenes)\b"""
+    )
+
+    private fun isAdultContent(title: String?, genre: String? = null, description: String? = null): Boolean {
+        if (title != null && adultPattern.containsMatchIn(title)) return true
+        if (genre != null && adultPattern.containsMatchIn(genre)) return true
+        if (description != null && adultPattern.containsMatchIn(description)) return true
+        return false
+    }
 
     data class BrandModel(val brand: String, val model: String)
 
@@ -432,6 +442,9 @@ class MovieBoxProvider : MainAPI() {
                 val items = root["data"]?.get("items") ?: root["data"]?.get("subjects") ?: return newHomePageResponse(emptyList())
                 items.mapNotNull { item ->
                     val title = item["title"]?.asText()?.substringBefore("[") ?: return@mapNotNull null
+                    val genre = item["genre"]?.asText()
+                    val desc = item["description"]?.asText()
+                    if (isAdultContent(title, genre, desc)) return@mapNotNull null
                     val id = item["subjectId"]?.asText() ?: return@mapNotNull null
                     val coverImg = item["cover"]?.get("url")?.asText()
                     val subjectType = item["subjectType"]?.asInt() ?: 1
@@ -506,10 +519,13 @@ class MovieBoxProvider : MainAPI() {
         for (result in results) {
             val subjects = result["subjects"] ?: continue
             for (subject in subjects) {
-            val title = subject["title"]?.asText() ?: continue
-            val id = subject["subjectId"]?.asText() ?: continue
-            val coverImg = subject["cover"]?.get("url")?.asText()
-            val subjectType = subject["subjectType"]?.asInt() ?: 1
+                val title = subject["title"]?.asText() ?: continue
+                val genre = subject["genre"]?.asText()
+                val desc = subject["description"]?.asText()
+                if (isAdultContent(title, genre, desc)) continue
+                val id = subject["subjectId"]?.asText() ?: continue
+                val coverImg = subject["cover"]?.get("url")?.asText()
+                val subjectType = subject["subjectType"]?.asInt() ?: 1
             val type = when (subjectType) {
                         1 -> TvType.Movie
                         2 -> TvType.TvSeries
@@ -583,6 +599,10 @@ class MovieBoxProvider : MainAPI() {
         val releaseDate = data["releaseDate"]?.asText()
         val duration = data["duration"]?.asText()
         val genre = data["genre"]?.asText()
+
+        if (isAdultContent(title, genre, description)) {
+            throw ErrorLoadingException("This title is blocked by Family Safe filter.")
+        }
         val imdbRating = data["imdbRatingValue"]?.asText()?.toDoubleOrNull()?.times(10)?.toInt()
         val year = releaseDate?.substring(0, 4)?.toIntOrNull()
 

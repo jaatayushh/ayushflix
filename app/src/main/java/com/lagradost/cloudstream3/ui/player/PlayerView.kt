@@ -16,6 +16,8 @@ import android.os.Looper
 import android.text.format.DateUtils
 import android.util.AttributeSet
 import android.util.Log
+import android.view.MotionEvent
+import android.view.PointerIcon
 import android.view.View
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
@@ -817,6 +819,58 @@ class PlayerView @JvmOverloads constructor(
 
     /** Auto-hide */
 
+    private val mouseHideHandler = Handler(Looper.getMainLooper())
+    private val hideMouseRunnable = Runnable {
+        hideMouseCursor()
+    }
+
+    fun showMouseCursor() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                val defaultIcon = PointerIcon.getSystemIcon(context, PointerIcon.TYPE_DEFAULT)
+                this.pointerIcon = defaultIcon
+                (context as? Activity)?.window?.decorView?.pointerIcon = defaultIcon
+            } catch (_: Throwable) {}
+        }
+    }
+
+    fun hideMouseCursor() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                val nullIcon = PointerIcon.getSystemIcon(context, PointerIcon.TYPE_NULL)
+                this.pointerIcon = nullIcon
+                (context as? Activity)?.window?.decorView?.pointerIcon = nullIcon
+            } catch (_: Throwable) {}
+        }
+    }
+
+    fun onUserMouseActivity() {
+        showMouseCursor()
+        mouseHideHandler.removeCallbacks(hideMouseRunnable)
+        if (player.getIsPlaying()) {
+            mouseHideHandler.postDelayed(hideMouseRunnable, 5000L)
+        }
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_HOVER_MOVE ||
+            event.actionMasked == MotionEvent.ACTION_HOVER_ENTER) {
+            onUserMouseActivity()
+        }
+        return super.dispatchGenericMotionEvent(event)
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        onUserMouseActivity()
+        return super.dispatchTouchEvent(ev)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        mouseHideHandler.removeCallbacks(hideMouseRunnable)
+        showMouseCursor()
+    }
+
     /**
      * Schedules a delayed auto-hide of the player UI after [delayMs] ms.
      * Any previously pending hide is canceled first.
@@ -831,6 +885,9 @@ class PlayerView @JvmOverloads constructor(
             if (gestureHelper.isCurrentTouchValid) return@postDelayed
             if (callbacks?.isUIShowing() != true) return@postDelayed
             callbacks?.onAutoHideUI()
+            if (player.getIsPlaying()) {
+                hideMouseCursor()
+            }
         }, delayMs)
     }
 

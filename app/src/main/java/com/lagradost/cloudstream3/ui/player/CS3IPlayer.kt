@@ -1100,13 +1100,21 @@ class CS3IPlayer : IPlayer {
                         context.getString(R.string.software_decoding_key),
                         -1
                     )
+                    val isWsa = android.os.Build.BRAND.equals("Windows", ignoreCase = true) ||
+                                android.os.Build.MANUFACTURER.contains("Microsoft", ignoreCase = true) ||
+                                android.os.Build.MODEL.contains("Subsystem for Android", ignoreCase = true)
+
                     val (isSoftwareDecodingEnabled, isSoftwareDecodingPreferred) = when (current) {
                         0 -> true to false // HW+SW, aka on but prefer hw
                         2 -> true to true // SW+HW, aka on but prefer sw
                         1 -> false to false // HW, aka off
                         // -1 = automatic
-                        // We do not want tv to have software decoding, because of crashes
-                        else -> isLayout(PHONE or EMULATOR) to false
+                        // On Windows WSA, latte.hevc.decoder drops frames on 1080p 10-bit HEVC, so default to SW+HW
+                        else -> if (isWsa) {
+                            true to true
+                        } else {
+                            isLayout(PHONE or EMULATOR) to false
+                        }
                     }
 
                     val factory = if (isSoftwareDecodingEnabled) {

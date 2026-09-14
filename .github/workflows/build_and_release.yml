@@ -1,0 +1,100 @@
+name: Build & Release Ayushflix
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+    paths-ignore:
+      - '*.md'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish as GitHub Release'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Build Stable Release APK
+        run: ./gradlew assembleStableRelease --stacktrace
+
+      - name: Prepare Release Asset
+        id: prepare_asset
+        run: |
+          mkdir -p release_assets
+          APK_FILE=$(find app/build/outputs/apk/stable/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: Release APK not found!"
+            exit 1
+          fi
+          echo "Found APK: $APK_FILE"
+          TAG="${{ github.ref_name }}"
+          if [[ ! "$TAG" =~ ^v ]]; then
+            TAG="v1.0.7"
+          fi
+          ASSET_NAME="Ayushflix-${TAG}.apk"
+          cp "$APK_FILE" "release_assets/${ASSET_NAME}"
+          echo "asset_path=release_assets/${ASSET_NAME}" >> $GITHUB_OUTPUT
+          echo "asset_name=${ASSET_NAME}" >> $GITHUB_OUTPUT
+          echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare_asset.outputs.asset_name }}
+          path: ${{ steps.prepare_asset.outputs.asset_path }}
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare_asset.outputs.tag_name }}
+          name: "Ayushflix ${{ steps.prepare_asset.outputs.tag_name }}"
+          body: |
+            ## Ayushflix ${{ steps.prepare_asset.outputs.tag_name }}
+
+            - Fixed bugs
+            - Fixed ISP blocks
+            - Family Safe content filtering (hidden adult/NSFW content)
+            - Smooth 1080p HEVC hardware/software decoding on PC (WSA)
+            - Automatic mouse cursor hiding after 5s of inactivity
+          files: ${{ steps.prepare_asset.outputs.asset_path }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
