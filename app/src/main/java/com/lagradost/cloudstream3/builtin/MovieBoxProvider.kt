@@ -140,19 +140,27 @@ class MovieBoxProvider : MainAPI() {
         return Pair(region, timezone)
     }
 
+    private fun getUserAgent(): String {
+        val (region, _) = getUserRegionInfo()
+        val pkg = if (region == "IN") "com.community.mbox.in" else "com.community.oneroom"
+        val locale = if (region == "IN") "en_IN" else "en_$region"
+        return "$pkg/50020126 (Linux; U; Android 14; $locale; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)"
+    }
+
     private fun getClientInfoJson(): String {
         val (region, timezone) = getUserRegionInfo()
-        return """{"package_name":"com.community.mbox.in","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"$region","timezone":"$timezone","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"1","X-Content-Mode":"1"}""".trimIndent()
+        val pkg = if (region == "IN") "com.community.mbox.in" else "com.community.oneroom"
+        return """{"package_name":"$pkg","version_name":"4.0.02.0831.03","version_code":50020126,"os":"android","os_version":"14","install_ch":"official","device_id":"$deviceId","install_store":"official","gaid":"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d","brand":"Google","model":"Pixel 8","system_language":"en","net":"NETWORK_WIFI","region":"$region","timezone":"$timezone","sp_code":"","X-Play-Mode":"1","X-Idle-Data":"1","X-Family-Mode":"1","X-Content-Mode":"1"}""".trimIndent()
     }
 
     private val adultPattern = Regex(
-        """(?i)\b(porn|porno|xxx|adult|erotic|erotica|hentai|nsfw|18\+|uncensored|sensual|nude|nudity|onlyfans|softcore|hardcore|fetish|ullu|kooku|primeplay|hotshots|besharams|voovi|moodx|jav|b-grade|playboy|lust\s*stories|rabbit\s*movies|hunters\s*app|chikooflix|redprime|sex|sexy\s*scenes)\b"""
+        """(?i)\b(porn|porno|xxx|erotic|erotica|hentai|nsfw|nudity|onlyfans|softcore|hardcore|fetish|ullu|kooku|primeplay|hotshots|besharams|voovi|moodx|jav|playboy|lust\s*stories|rabbit\s*movies|hunters\s*app|chikooflix|redprime|sexy\s*scenes)\b"""
     )
 
     private fun isAdultContent(title: String?, genre: String? = null, description: String? = null): Boolean {
         if (title != null && adultPattern.containsMatchIn(title)) return true
         if (genre != null && adultPattern.containsMatchIn(genre)) return true
-        if (description != null && adultPattern.containsMatchIn(description)) return true
+        if (description != null && Regex("""(?i)\b(porn|porno|xxx|hentai|nsfw|onlyfans|ullu|kooku|primeplay|hotshots|besharams|voovi|moodx|jav|playboy)\b""").containsMatchIn(description)) return true
         return false
     }
 
@@ -182,41 +190,49 @@ class MovieBoxProvider : MainAPI() {
         if (!forceRefresh && cachedGuestToken != null && (now - tokenLastFetchMs) < 3600000L) {
             return cachedGuestToken
         }
-        return try {
-            val xClientToken = generateXClientToken(now)
-            val rankingUrl = "https://apig.inmoviebox.com/wefeed-mobile-bff/tab/ranking-list?tabId=0&categoryType=4516404531735022304&page=1&perPage=1"
-            val xTrSignature = generateXTrSignature(
-                method = "GET",
-                accept = "application/json",
-                contentType = "application/json",
-                url = rankingUrl,
-                body = null,
-                useAltKey = false,
-                hardcodedTimestamp = now
-            )
-            val headers = mapOf(
-                "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
-                "accept" to "application/json",
-                "content-type" to "application/json",
-                "x-client-token" to xClientToken,
-                "x-tr-signature" to xTrSignature,
-                "x-client-info" to getClientInfoJson(),
-                "x-client-status" to "0"
-            )
-            val res = app.get(rankingUrl, headers = headers)
-            val xUserHeader = res.headers["x-user"]
-            if (!xUserHeader.isNullOrBlank()) {
-                val mapper = jacksonObjectMapper()
-                val tok = mapper.readTree(xUserHeader)?.get("token")?.asText()
-                if (!tok.isNullOrBlank()) {
-                    cachedGuestToken = tok
-                    tokenLastFetchMs = now
-                    tok
-                } else null
-            } else null
-        } catch (e: Exception) {
-            null
+        val tokenDomains = listOf(
+            mainUrl,
+            "https://apig.inmoviebox.com",
+            "https://api.inmoviebox.com"
+        )
+        for (domain in tokenDomains) {
+            try {
+                val xClientToken = generateXClientToken(now)
+                val rankingUrl = "$domain/wefeed-mobile-bff/tab/ranking-list?tabId=0&categoryType=4516404531735022304&page=1&perPage=1"
+                val xTrSignature = generateXTrSignature(
+                    method = "GET",
+                    accept = "application/json",
+                    contentType = "application/json",
+                    url = rankingUrl,
+                    body = null,
+                    useAltKey = false,
+                    hardcodedTimestamp = now
+                )
+                val headers = mapOf(
+                    "user-agent" to getUserAgent(),
+                    "accept" to "application/json",
+                    "content-type" to "application/json",
+                    "x-client-token" to xClientToken,
+                    "x-tr-signature" to xTrSignature,
+                    "x-client-info" to getClientInfoJson(),
+                    "x-client-status" to "0"
+                )
+                val res = app.get(rankingUrl, headers = headers, timeout = 5)
+                val xUserHeader = res.headers["x-user"]
+                if (!xUserHeader.isNullOrBlank()) {
+                    val mapper = jacksonObjectMapper()
+                    val tok = mapper.readTree(xUserHeader)?.get("token")?.asText()
+                    if (!tok.isNullOrBlank()) {
+                        cachedGuestToken = tok
+                        tokenLastFetchMs = now
+                        return tok
+                    }
+                }
+            } catch (_: Exception) {
+                // Try next domain
+            }
         }
+        return cachedGuestToken
     }
 
     @SuppressLint("UseKtx")
@@ -392,7 +408,7 @@ class MovieBoxProvider : MainAPI() {
         val getxTrSignature = generateXTrSignature("GET", "application/json", "application/json", url)
 
         val headers = mutableMapOf(
-            "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
+            "user-agent" to getUserAgent(),
             "accept" to "application/json",
             "content-type" to "application/json",
             "connection" to "keep-alive",
@@ -404,7 +420,7 @@ class MovieBoxProvider : MainAPI() {
         )
 
         val getheaders = mutableMapOf(
-            "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
+            "user-agent" to getUserAgent(),
             "accept" to "application/json",
             "content-type" to "application/json",
             "connection" to "keep-alive",
@@ -420,7 +436,16 @@ class MovieBoxProvider : MainAPI() {
         }
 
         val requestBody = jsonBody.toRequestBody("application/json".toMediaType())
-        val response = if (request.data.contains("|")) app.post(url, headers = headers, requestBody = requestBody) else app.get(url, headers = getheaders)
+        var response = if (request.data.contains("|")) app.post(url, headers = headers, requestBody = requestBody) else app.get(url, headers = getheaders)
+
+        if (response.code == 441 || response.code == 401) {
+            val refreshed = fetchAnonymousToken(forceRefresh = true)
+            if (!refreshed.isNullOrBlank()) {
+                headers["Authorization"] = "Bearer $refreshed"
+                getheaders["Authorization"] = "Bearer $refreshed"
+                response = if (request.data.contains("|")) app.post(url, headers = headers, requestBody = requestBody) else app.get(url, headers = getheaders)
+            }
+        }
 
         val xUserHeader = response.headers["x-user"]
         if (!xUserHeader.isNullOrBlank()) {
@@ -482,7 +507,7 @@ class MovieBoxProvider : MainAPI() {
         val xClientToken = generateXClientToken()
         val xTrSignature = generateXTrSignature("POST", "application/json", "application/json; charset=utf-8", url, jsonBody)
         val headers = mutableMapOf(
-            "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
+            "user-agent" to getUserAgent(),
             "accept" to "application/json",
             "content-type" to "application/json",
             "connection" to "keep-alive",
@@ -500,6 +525,17 @@ class MovieBoxProvider : MainAPI() {
             headers = headers,
             requestBody = requestBody
         )
+
+        val xUserResp = response.headers["x-user"]
+        if (!xUserResp.isNullOrBlank()) {
+            try {
+                val tok = jacksonObjectMapper().readTree(xUserResp)?.get("token")?.asText()
+                if (!tok.isNullOrBlank()) {
+                    cachedGuestToken = tok
+                    tokenLastFetchMs = System.currentTimeMillis()
+                }
+            } catch (_: Exception) {}
+        }
 
         if (response.code == 441 || response.code == 401) {
             val refreshed = fetchAnonymousToken(forceRefresh = true)
@@ -561,7 +597,7 @@ class MovieBoxProvider : MainAPI() {
         val xTrSignature = generateXTrSignature("GET", "application/json", "application/json", finalUrl)
 
         val headers = mutableMapOf(
-            "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
+            "user-agent" to getUserAgent(),
             "accept" to "application/json",
             "content-type" to "application/json",
             "connection" to "keep-alive",
@@ -576,6 +612,18 @@ class MovieBoxProvider : MainAPI() {
         }
 
         var response = app.get(finalUrl, headers = headers)
+
+        val xUserResp = response.headers["x-user"]
+        if (!xUserResp.isNullOrBlank()) {
+            try {
+                val tok = jacksonObjectMapper().readTree(xUserResp)?.get("token")?.asText()
+                if (!tok.isNullOrBlank()) {
+                    cachedGuestToken = tok
+                    tokenLastFetchMs = System.currentTimeMillis()
+                }
+            } catch (_: Exception) {}
+        }
+
         if (response.code == 441 || response.code == 401) {
             val refreshed = fetchAnonymousToken(forceRefresh = true)
             if (!refreshed.isNullOrBlank()) {
@@ -834,7 +882,7 @@ class MovieBoxProvider : MainAPI() {
             val subjectXClientToken = generateXClientToken()
             val subjectXTrSignature = generateXTrSignature("GET", "application/json", "application/json", subjectUrl)
             val subjectHeaders = mutableMapOf(
-                "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
+                "user-agent" to getUserAgent(),
                 "accept" to "application/json",
                 "content-type" to "application/json",
                 "connection" to "keep-alive",
@@ -914,7 +962,7 @@ class MovieBoxProvider : MainAPI() {
                     val xClientToken = generateXClientToken()
                     val xTrSignature = generateXTrSignature("GET", "application/json", "application/json", url)
                     val headers = mutableMapOf(
-                        "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
+                        "user-agent" to getUserAgent(),
                         "accept" to "application/json",
                         "content-type" to "application/json",
                         "connection" to "keep-alive",
@@ -989,7 +1037,7 @@ class MovieBoxProvider : MainAPI() {
                                     ) {
                                         this.headers = mapOf(
                                             "Referer" to mainUrl,
-                                            "User-Agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)"
+                                            "User-Agent" to getUserAgent()
                                         )
                                         if (quality != null) {
                                             this.quality = quality
@@ -1005,7 +1053,7 @@ class MovieBoxProvider : MainAPI() {
                                 val xClientToken = generateXClientToken()
                                 val xTrSignature = generateXTrSignature("GET", "", "", subLink)
                                 val subHeaders = mutableMapOf(
-                                    "user-agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
+                                    "user-agent" to getUserAgent(),
                                     "Accept" to "",
                                     "x-client-info" to getClientInfoJson(),
                                     "X-Client-Status" to "0",
@@ -1039,7 +1087,7 @@ class MovieBoxProvider : MainAPI() {
                                 val xClientToken1 = generateXClientToken()
                                 val xTrSignature1 = generateXTrSignature("GET", "", "", subLink1)
                                 val subHeaders1 = mutableMapOf(
-                                    "User-Agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)",
+                                    "User-Agent" to getUserAgent(),
                                     "Accept" to "",
                                     "X-Client-Info" to getClientInfoJson(),
                                     "X-Client-Status" to "0",
@@ -1108,7 +1156,7 @@ class MovieBoxProvider : MainAPI() {
                                             ) {
                                                 this.headers = mapOf(
                                                     "Referer" to mainUrl,
-                                                    "User-Agent" to "com.community.mbox.in/50020126 (Linux; U; Android 14; en_IN; Pixel 8; Build/UD1A.230803.041; Cronet/145.0.7582.0)"
+                                                    "User-Agent" to getUserAgent()
                                                 )
                                                 this.quality = quality
                                             }
@@ -1310,7 +1358,7 @@ private suspend fun fetchMetaData(imdbId: String?, type: TvType): JsonNode? {
     val url = "https://v3-cinemeta.strem.io/meta/$metaType/$imdbId.json"
 
     return try {
-        val resp = app.get(url).text
+        val resp = app.get(url, timeout = 3).text
         mapper.readTree(resp)["meta"]
     } catch (_: Exception) {
         null
@@ -1332,7 +1380,7 @@ suspend fun fetchTmdbLogoUrl(
     else
         "$tmdbAPI/tv/$tmdbId/images?api_key=$apiKey&random=${Random.nextInt()}"
 
-    val json = runCatching { JSONObject(app.get(url).text) }.getOrNull() ?: return null
+    val json = runCatching { JSONObject(app.get(url, timeout = 2).text) }.getOrNull() ?: return null
     val logos = json.optJSONArray("logos") ?: return null
     if (logos.length() == 0) return null
 

@@ -64,7 +64,7 @@ jobs:
           echo "Found APK: $APK_FILE"
           TAG="${{ github.ref_name }}"
           if [[ ! "$TAG" =~ ^v ]]; then
-            TAG="v1.0.7"
+            TAG="v1.0.8"
           fi
           ASSET_NAME="Ayushflix-${TAG}.apk"
           cp "$APK_FILE" "release_assets/${ASSET_NAME}"
@@ -88,11 +88,12 @@ jobs:
           body: |
             ## Ayushflix ${{ steps.prepare_asset.outputs.tag_name }}
 
-            - Fixed bugs
-            - Fixed ISP blocks
-            - Family Safe content filtering (hidden adult/NSFW content)
-            - Smooth 1080p HEVC hardware/software decoding on PC (WSA)
-            - Automatic mouse cursor hiding after 5s of inactivity
+            - Worldwide streaming fix: search and movie loading now works reliably in all countries (US, UK, CA, EU, IN, etc.)
+            - Multi-domain fallback for guest tokens (`api3.aoneroom.com` / `apig.inmoviebox.com`)
+            - Dynamic regional User-Agent and package detection
+            - Refined Family Safe filter (blocks adult platforms like Ullu, Kooku, Hotshots, etc. without false-positives on mainstream movies)
+            - Optimized TMDb and metadata network timeouts
+            - Smooth 1080p HEVC playback and auto-hiding mouse cursor for PC (WSA)
           files: ${{ steps.prepare_asset.outputs.asset_path }}
           draft: false
           prerelease: false
