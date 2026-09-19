@@ -103,7 +103,7 @@ object FirebaseAuthManager {
                     }
                 } else {
                     val ex = task.exception
-                    logError(ex)
+                    ex?.let { logError(it) }
                     onError(ex?.message ?: "Authentication with Firebase failed")
                 }
             }

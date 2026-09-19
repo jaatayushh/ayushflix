@@ -12,6 +12,10 @@ import com.lagradost.cloudstream3.utils.DataStoreHelper
 object FirebaseSyncManager {
     private val database: FirebaseDatabase by lazy { FirebaseDatabase.getInstance() }
 
+    fun init() {
+        syncFromCloud()
+    }
+
     fun pushProgress(
         parentId: Int?,
         episodeId: Int?,

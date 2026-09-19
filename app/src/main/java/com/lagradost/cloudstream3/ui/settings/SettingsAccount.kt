@@ -523,7 +523,7 @@ class SettingsAccount : BasePreferenceFragmentCompat(), BiometricCallback {
                             }
                             1 -> {
                                 val input = android.widget.EditText(act).apply {
-                                    setText(user.photoUrl ?: "")
+                                    setText(user.photoUrl?.toString() ?: "")
                                     hint = "https://..."
                                 }
                                 AlertDialog.Builder(act, R.style.AlertDialogCustom)
@@ -544,7 +544,7 @@ class SettingsAccount : BasePreferenceFragmentCompat(), BiometricCallback {
                                     .show()
                             }
                             2 -> {
-                                com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.syncAllLocalToCloud(act)
+                                com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.syncAllLocalToCloud()
                                 com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.syncFromCloud()
                                 showToast("Continue Watching synced to Cloud!")
                             }
