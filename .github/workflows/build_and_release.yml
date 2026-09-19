@@ -14,7 +14,7 @@ on:
       create_release:
         description: 'Publish as GitHub Release'
         required: false
-        default: true
+        default: false
         type: boolean
 
 permissions:
