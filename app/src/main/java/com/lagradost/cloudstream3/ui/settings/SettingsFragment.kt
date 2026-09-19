@@ -241,6 +241,12 @@ class SettingsFragment : BaseFragment<MainSettingsBinding>(
                 }
             }
 
+            settingsDonate.setOnClickListener {
+                context?.let { ctx ->
+                    com.lagradost.cloudstream3.ui.kofi.KofiDialogHelper.openKofiLink(ctx)
+                }
+            }
+
             // Default focus on TV
             if (isLayout(TV)) {
                 settingsGeneral.requestFocus()

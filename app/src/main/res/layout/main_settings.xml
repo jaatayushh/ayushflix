@@ -107,6 +107,13 @@
                 android:nextFocusUp="@id/settings_credits"
                 android:text="@string/extensions" />
 
+            <TextView
+                android:id="@+id/settings_donate"
+                style="@style/SettingsItem"
+                android:nextFocusUp="@id/settings_extensions"
+                android:text="☕ Support Developer (Ko-fi)"
+                android:textColor="@color/colorAccent" />
+
             <LinearLayout
                 android:id="@+id/app_version_info"
                 android:layout_width="wrap_content"

@@ -3,6 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
+        android:title="@string/firebase_category_title"
+        app:key="firebase_account_category">
+
+        <Preference
+            android:key="firebase_google_account_key"
+            android:title="@string/firebase_account_title"
+            android:summary="@string/firebase_account_summary"
+            android:icon="@drawable/ic_baseline_cloud_sync_24" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:title="@string/pref_category_accounts">
 
         <Preference

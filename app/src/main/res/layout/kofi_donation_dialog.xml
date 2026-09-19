@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="☕ "
+            android:textSize="28sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Support Ayushflix"
+            android:textColor="?attr/textColor"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Hey there! 👋 Creating and maintaining the universal streaming engine, reverse-engineering the APIs, bypassing regional blocks, and keeping the Singapore servers running 24/7 ad-free has taken immense effort and countless sleepless nights.\n\nIf you enjoy streaming on Ayushflix, please consider supporting on Ko-fi. Every donation keeps the servers alive and the movies free for everyone!"
+        android:textColor="?attr/textColor"
+        android:alpha="0.85"
+        android:lineSpacingExtra="4dp"
+        android:textSize="14sp"
+        android:layout_marginBottom="24dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/kofi_support_btn"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="☕ Support on Ko-fi (@jaatayushh)"
+        android:textColor="@android:color/white"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:backgroundTint="?attr/colorPrimary"
+        app:cornerRadius="12dp"
+        android:layout_marginBottom="10dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/kofi_remind_later_btn"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Remind Me Later"
+        android:textColor="?attr/textColor"
+        app:cornerRadius="12dp"
+        android:layout_marginBottom="6dp" />
+
+    <TextView
+        android:id="@+id/kofi_dismiss_forever_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="8dp"
+        android:text="Already Donated / Don't Show Again"
+        android:textColor="?attr/textColor"
+        android:alpha="0.6"
+        android:textSize="12sp" />
+
+</LinearLayout>

@@ -466,6 +466,102 @@ class SettingsAccount : BasePreferenceFragmentCompat(), BiometricCallback {
             false
         }
 
+        fun updateFirebasePref() {
+            findPreference<androidx.preference.Preference>("firebase_google_account_key")?.apply {
+                val user = com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.currentUser
+                if (user != null) {
+                    title = user.displayName ?: "Google Account"
+                    summary = "Connected: ${user.email ?: "User"}\nTap to manage profile, sync or sign out"
+                } else {
+                    title = getString(R.string.firebase_account_title)
+                    summary = getString(R.string.firebase_account_summary)
+                }
+            }
+        }
+
+        updateFirebasePref()
+
+        findPreference<androidx.preference.Preference>("firebase_google_account_key")?.setOnPreferenceClickListener {
+            val act = activity ?: return@setOnPreferenceClickListener false
+            val user = com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.currentUser
+            if (user == null) {
+                AlertDialog.Builder(act, R.style.AlertDialogCustom)
+                    .setTitle("Google Account Sync")
+                    .setMessage("Sign in with Google to enable cloud sync for your Continue Watching list across all your devices.\n\nNote: Sign-in is 100% optional. You can also continue using the app as a guest.")
+                    .setPositiveButton("Sign in with Google") { _, _ ->
+                        com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.startGoogleSignIn(act)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            } else {
+                val options = arrayOf("Edit Display Name", "Edit Profile Photo URL", "Sync Continue Watching Now", "Sign Out")
+                AlertDialog.Builder(act, R.style.AlertDialogCustom)
+                    .setTitle(user.displayName ?: "Google Account")
+                    .setItems(options) { _, which ->
+                        when (which) {
+                            0 -> {
+                                val input = android.widget.EditText(act).apply {
+                                    setText(user.displayName ?: "")
+                                    hint = "Enter display name"
+                                }
+                                AlertDialog.Builder(act, R.style.AlertDialogCustom)
+                                    .setTitle("Edit Display Name")
+                                    .setView(input)
+                                    .setPositiveButton("Save") { _, _ ->
+                                        val newName = input.text.toString().trim()
+                                        if (newName.isNotEmpty()) {
+                                            com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.updateUserProfile(newName, null) { success, _ ->
+                                                if (success) {
+                                                    showToast("Name updated!")
+                                                    updateFirebasePref()
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .setNegativeButton("Cancel", null)
+                                    .show()
+                            }
+                            1 -> {
+                                val input = android.widget.EditText(act).apply {
+                                    setText(user.photoUrl ?: "")
+                                    hint = "https://..."
+                                }
+                                AlertDialog.Builder(act, R.style.AlertDialogCustom)
+                                    .setTitle("Edit Profile Photo URL")
+                                    .setView(input)
+                                    .setPositiveButton("Save") { _, _ ->
+                                        val newPhoto = input.text.toString().trim()
+                                        if (newPhoto.isNotEmpty()) {
+                                            com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.updateUserProfile(null, newPhoto) { success, _ ->
+                                                if (success) {
+                                                    showToast("Photo updated!")
+                                                    updateFirebasePref()
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .setNegativeButton("Cancel", null)
+                                    .show()
+                            }
+                            2 -> {
+                                com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.syncAllLocalToCloud(act)
+                                com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.syncFromCloud()
+                                showToast("Continue Watching synced to Cloud!")
+                            }
+                            3 -> {
+                                com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.signOut(act) {
+                                    showToast("Signed out")
+                                    updateFirebasePref()
+                                }
+                            }
+                        }
+                    }
+                    .setNegativeButton("Close", null)
+                    .show()
+            }
+            true
+        }
+
         val syncApis =
             listOf(
                 R.string.mal_key to SyncRepo(malApi),

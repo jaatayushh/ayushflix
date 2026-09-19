@@ -793,4 +793,8 @@
         <item quantity="other">%d downloads queued</item>
     </plurals>
     <string name="player_is_live">Live</string>
+    <string name="firebase_category_title">AyushFlix Cloud &amp; Google Account</string>
+    <string name="firebase_account_title">Google Account</string>
+    <string name="firebase_account_summary">Sign in to sync continue watching across devices (Optional)</string>
+    <string name="kofi_donation_title">Support Developer on Ko-fi</string>
 </resources>

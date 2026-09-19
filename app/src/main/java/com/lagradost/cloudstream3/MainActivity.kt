@@ -2011,6 +2011,16 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
         // Start the download queue
         DownloadQueueManager.init(this)
+
+        try {
+            com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.init()
+            com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.init()
+            main {
+                com.lagradost.cloudstream3.ui.kofi.KofiDialogHelper.checkAndShowOnHome(this@MainActivity)
+            }
+        } catch (t: Throwable) {
+            logError(t)
+        }
     }
 
     /** Biometric stuff **/
@@ -2021,6 +2031,21 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
     override fun onAuthenticationError() {
         finish()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.RC_SIGN_IN) {
+            com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.handleSignInResult(
+                intent = data,
+                onSuccess = { user ->
+                    showToast("Signed in as ${user.displayName ?: user.email ?: "Google User"}")
+                },
+                onError = { err ->
+                    showToast("Sign in error: $err")
+                }
+            )
+        }
     }
 
     suspend fun checkGithubConnectivity(): Boolean {

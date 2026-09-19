@@ -583,6 +583,21 @@ object DataStoreHelper {
                 isFromDownload,
             )
         )
+        try {
+            val targetId = episodeId ?: parentId
+            val posDur = getViewPos(targetId)
+            if (posDur != null) {
+                com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.pushProgress(
+                    parentId = parentId,
+                    episodeId = episodeId,
+                    episode = episode,
+                    season = season,
+                    position = posDur.position,
+                    duration = posDur.duration,
+                    updateTime = updateTime
+                )
+            }
+        } catch (_: Throwable) {}
     }
 
     private fun removeLastWatchedOld(parentId: Int?) {
