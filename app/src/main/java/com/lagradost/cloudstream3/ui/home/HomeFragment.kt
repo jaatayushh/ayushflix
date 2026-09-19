@@ -677,6 +677,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
                 activity?.showAccountSelectLinear()
             }
 
+            activity?.let { act ->
+                act.runOnUiThread {
+                    com.lagradost.cloudstream3.ui.kofi.KofiDialogHelper.checkAndShowOnHome(act)
+                }
+            }
+
             homeMasterAdapter = HomeParentItemAdapterPreview(
                 homeViewModel, accountViewModel
             )

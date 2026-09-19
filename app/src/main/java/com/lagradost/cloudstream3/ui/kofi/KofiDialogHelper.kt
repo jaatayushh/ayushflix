@@ -11,14 +11,12 @@ import androidx.preference.PreferenceManager
 import com.lagradost.cloudstream3.CommonActivity.showToast
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.databinding.KofiDonationDialogBinding
+import com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager
 import com.lagradost.cloudstream3.utils.UIHelper.dismissSafe
 
 object KofiDialogHelper {
     const val KOFI_URL = "https://ko-fi.com/jaatayushh"
-    private const val PREF_KOFI_DISMISSED = "kofi_dismissed_forever"
-    private const val PREF_KOFI_LAST_SHOWN = "kofi_last_shown_time"
-    private const val PREF_APP_LAUNCHES = "kofi_app_launches_count"
-    private const val SNOOZE_MS = 3 * 24 * 60 * 60 * 1000L // 3 days
+    private const val PREF_POPUP_DISMISSED = "welcome_popup_dismissed_forever"
 
     fun openKofiLink(context: Context) {
         try {
@@ -33,44 +31,45 @@ object KofiDialogHelper {
 
     fun checkAndShowOnHome(activity: Activity) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
-        val dismissed = prefs.getBoolean(PREF_KOFI_DISMISSED, false)
-        if (dismissed) return
-
-        val launches = prefs.getInt(PREF_APP_LAUNCHES, 0) + 1
-        prefs.edit { putInt(PREF_APP_LAUNCHES, launches) }
-
-        val lastShown = prefs.getLong(PREF_KOFI_LAST_SHOWN, 0L)
-        val now = System.currentTimeMillis()
-
-        // Show on 2nd launch, then at most once every 3 days
-        if (launches >= 2 && (now - lastShown) > SNOOZE_MS) {
-            prefs.edit { putLong(PREF_KOFI_LAST_SHOWN, now) }
-            showKofiDialog(activity, force = false)
+        val dismissed = prefs.getBoolean(PREF_POPUP_DISMISSED, false)
+        if (!dismissed) {
+            activity.runOnUiThread {
+                showWelcomeDialog(activity, force = false)
+            }
         }
     }
 
-    fun showKofiDialog(activity: Activity, force: Boolean = false) {
+    fun showWelcomeDialog(activity: Activity, force: Boolean = false) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
-        if (!force && prefs.getBoolean(PREF_KOFI_DISMISSED, false)) return
+        if (!force && prefs.getBoolean(PREF_POPUP_DISMISSED, false)) return
 
         val binding = KofiDonationDialogBinding.inflate(LayoutInflater.from(activity))
         val dialog = AlertDialog.Builder(activity, R.style.AlertDialogCustom)
             .setView(binding.root)
             .create()
 
-        binding.kofiSupportBtn.setOnClickListener {
-            openKofiLink(activity)
-            dialog.dismissSafe()
+        val currentUser = FirebaseAuthManager.currentUser
+        if (currentUser != null) {
+            val name = currentUser.displayName ?: currentUser.email ?: "Google User"
+            binding.kofiGoogleLoginBtn.text = "✅ Signed in as $name"
         }
 
-        binding.kofiRemindLaterBtn.setOnClickListener {
-            prefs.edit { putLong(PREF_KOFI_LAST_SHOWN, System.currentTimeMillis()) }
-            dialog.dismissSafe()
+        binding.kofiGoogleLoginBtn.setOnClickListener {
+            if (FirebaseAuthManager.isLoggedIn) {
+                showToast("Already signed in! Your continue watching syncs to cloud.")
+            } else {
+                FirebaseAuthManager.startGoogleSignIn(activity)
+                dialog.dismissSafe()
+            }
+        }
+
+        binding.kofiSupportBtn.setOnClickListener {
+            openKofiLink(activity)
         }
 
         binding.kofiDismissForeverBtn.setOnClickListener {
-            prefs.edit { putBoolean(PREF_KOFI_DISMISSED, true) }
-            showToast("Thank you for using Ayushflix!")
+            prefs.edit { putBoolean(PREF_POPUP_DISMISSED, true) }
+            showToast("Welcome to Ayushflix! Enjoy ad-free streaming.")
             dialog.dismissSafe()
         }
 

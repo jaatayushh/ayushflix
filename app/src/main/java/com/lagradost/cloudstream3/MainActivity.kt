@@ -2016,6 +2016,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.init()
             com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.init()
             main {
+                kotlinx.coroutines.delay(600)
                 com.lagradost.cloudstream3.ui.kofi.KofiDialogHelper.checkAndShowOnHome(this@MainActivity)
             }
         } catch (t: Throwable) {

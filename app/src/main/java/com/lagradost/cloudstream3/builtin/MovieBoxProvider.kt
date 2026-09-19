@@ -62,6 +62,8 @@ import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 class MovieBoxProvider : MainAPI() {
     companion object {
         var context: android.content.Context? = null
+        const val RENDER_API_BASE = "https://jaatayushh.onrender.com/api"
+        const val RENDER_API_KEY = "ayush_live_d7a3b801c820fca9a61e04cd541519e7"
     }
     override var mainUrl = "https://api3.aoneroom.com"
     override var name = "Ayushflix"
@@ -491,9 +493,42 @@ class MovieBoxProvider : MainAPI() {
                 null
             } ?: emptyList()
 
+            val finalData = if (data.isNotEmpty()) {
+                data
+            } else {
+                try {
+                    val rUrl = "$RENDER_API_BASE/home?tab=all&api_key=$RENDER_API_KEY"
+                    val rResp = app.get(rUrl, timeout = 12L).text
+                    val rRoot = jacksonObjectMapper().readTree(rResp)
+                    val rows = rRoot.get("rows")
+                    val fallbackList = mutableListOf<SearchResponse>()
+                    if (rows != null && rows.isArray) {
+                        for (row in rows) {
+                            val items = row["items"] ?: continue
+                            for (item in items) {
+                                val rTitle = item["title"]?.asText() ?: continue
+                                val rId = item["id"]?.asText() ?: continue
+                                val rPoster = item["poster"]?.asText()
+                                val typeStr = item["type"]?.asText() ?: "movie"
+                                val rType = if (typeStr.equals("series", true) || typeStr.equals("tv", true)) TvType.TvSeries else TvType.Movie
+                                fallbackList.add(
+                                    newMovieSearchResponse(name = rTitle, url = rId, type = rType) {
+                                        this.posterUrl = rPoster
+                                        this.score = Score.from10(item["rating"]?.asText())
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    fallbackList
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+
             return newHomePageResponse(
                 listOf(
-                    HomePageList(request.name, data)
+                    HomePageList(request.name, finalData)
                 )
             )
 
@@ -578,6 +613,29 @@ class MovieBoxProvider : MainAPI() {
                 }
             )
             }
+        }
+        if (searchList.isEmpty()) {
+            try {
+                val renderUrl = "$RENDER_API_BASE/search?q=${URLEncoder.encode(query, "UTF-8")}&api_key=$RENDER_API_KEY"
+                val rResp = app.get(renderUrl, timeout = 12L).text
+                val rRoot = jacksonObjectMapper().readTree(rResp)
+                val rResults = rRoot.get("results")
+                if (rResults != null && rResults.isArray) {
+                    for (item in rResults) {
+                        val rTitle = item["title"]?.asText() ?: continue
+                        val rId = item["id"]?.asText() ?: continue
+                        val rPoster = item["poster"]?.asText()
+                        val typeStr = item["type"]?.asText() ?: "movie"
+                        val rType = if (typeStr.equals("series", true) || typeStr.equals("tv", true)) TvType.TvSeries else TvType.Movie
+                        searchList.add(
+                            newMovieSearchResponse(name = rTitle, url = rId, type = rType) {
+                                this.posterUrl = rPoster
+                                this.score = Score.from10(item["rating"]?.asText())
+                            }
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
         }
         return searchList.toNewSearchResponseList()
     }
@@ -1170,6 +1228,34 @@ class MovieBoxProvider : MainAPI() {
                     continue
                 }
             }
+
+            try {
+                val rUrl = "$RENDER_API_BASE/streams?id=$originalSubjectId&se=$season&ep=$episode&api_key=$RENDER_API_KEY"
+                val rResp = app.get(rUrl, timeout = 12L).text
+                val rRoot = mapper.readTree(rResp)
+                val rStreams = rRoot.get("streams")
+                if (rStreams != null && rStreams.isArray) {
+                    for (st in rStreams) {
+                        val origUrl = st["originalUrl"]?.asText() ?: continue
+                        val format = st["format"]?.asText() ?: "DASH"
+                        val cookie = st["cookie"]?.asText()
+                        val headersMap = mutableMapOf<String, String>()
+                        if (!cookie.isNullOrEmpty()) {
+                            headersMap["Cookie"] = cookie
+                        }
+                        callback(
+                            newExtractorLink(
+                                name = "Ayushflix (${st["language"]?.asText() ?: "Server"})",
+                                source = "Ayushflix Cloud",
+                                url = origUrl,
+                                type = if (format == "DASH") ExtractorLinkType.DASH else ExtractorLinkType.VIDEO
+                            ) {
+                                this.headers = headersMap
+                            }
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
             
             return true
               
