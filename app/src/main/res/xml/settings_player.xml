@@ -78,13 +78,13 @@
             android:icon="@drawable/ic_baseline_speed_24"
             android:summary="@string/speed_setting_summary"
             android:title="@string/eigengraumode_settings"
-            app:defaultValue="false"
+            app:defaultValue="true"
             app:key="@string/playback_speed_enabled_key" />
         <SwitchPreference
             android:icon="@drawable/speedup"
             android:summary="@string/speedup_summary"
             android:title="@string/speedup_title"
-            app:defaultValue="false"
+            app:defaultValue="true"
             app:key="@string/speedup_key" />
         <SwitchPreference
             android:icon="@drawable/ic_baseline_skip_next_24"

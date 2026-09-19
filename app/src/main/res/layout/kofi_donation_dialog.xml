@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="22dp">
+    android:padding="24dp">
 
     <!-- Header Title -->
     <LinearLayout
@@ -12,18 +12,18 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:layout_marginBottom="12dp">
+        android:layout_marginBottom="14dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🎬 "
+            android:text="☕ "
             android:textSize="26sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Welcome to Ayushflix"
+            android:text="Support Ayushflix"
             android:textColor="?attr/textColor"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -33,54 +33,44 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hey there! 👋 Creating and maintaining the universal streaming engine, reverse-engineering the APIs, deploying our Singapore node, and keeping servers running 24/7 ad-free has taken immense effort and sleepless nights.\n\nEnjoy streaming, connect your Google account to sync your Continue Watching across devices, or support on Ko-fi to help pay server bills!"
+        android:text="Hey there! 👋 Creating and maintaining our custom streaming engine, reverse-engineering the APIs, deploying our Singapore node, and keeping servers running 24/7 ad-free has taken immense effort and countless sleepless nights.\n\nIf you enjoy streaming on Ayushflix, please consider buying a coffee on Ko-fi to help keep the servers alive and free for everyone!"
         android:textColor="?attr/textColor"
         android:alpha="0.85"
-        android:lineSpacingExtra="3dp"
+        android:lineSpacingExtra="4dp"
         android:textSize="13sp"
-        android:layout_marginBottom="18dp" />
-
-    <!-- Google Login Button -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/kofi_google_login_btn"
-        style="@style/WhiteButton"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:text="🔑 Sign in with Google (Cloud Sync)"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="10dp" />
+        android:layout_marginBottom="20dp" />
 
     <!-- Ko-fi Support Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/kofi_support_btn"
-        style="@style/BlackButton"
+        style="@style/WhiteButton"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="52dp"
         android:text="☕ Support on Ko-fi (@jaatayushh)"
         android:textSize="14sp"
         android:textStyle="bold"
         android:layout_marginBottom="10dp" />
 
-    <!-- Continue as Guest / Don't show again Button -->
+    <!-- Maybe Later Button -->
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/kofi_dismiss_forever_btn"
+        android:id="@+id/kofi_remind_later_btn"
         style="@style/BlackButton"
         android:layout_width="match_parent"
         android:layout_height="46dp"
-        android:text="Continue as Guest (Don't Show Again)"
+        android:text="Maybe Later"
         android:textSize="13sp"
-        android:alpha="0.75"
-        android:layout_marginBottom="4dp" />
+        android:layout_marginBottom="6dp" />
 
+    <!-- Don't Remind Me Again Button -->
     <TextView
+        android:id="@+id/kofi_dismiss_forever_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:paddingTop="6dp"
-        android:text="You can always access Google Login &amp; Ko-fi in Settings"
+        android:padding="8dp"
+        android:text="Don't remind me again"
         android:textColor="?attr/textColor"
-        android:alpha="0.5"
-        android:textSize="11sp" />
+        android:alpha="0.6"
+        android:textSize="12sp" />
 
 </LinearLayout>

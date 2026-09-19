@@ -374,6 +374,38 @@ class MovieBoxProvider : MainAPI() {
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        try {
+            val tab = if (request.name.contains("series", true) || request.name.contains("drama", true) || request.data.contains("|2")) "series" else "all"
+            val rUrl = "$RENDER_API_BASE/home?tab=$tab&api_key=$RENDER_API_KEY"
+            val rResp = app.get(rUrl, timeout = 12L).text
+            val rRoot = jacksonObjectMapper().readTree(rResp)
+            val rows = rRoot.get("rows")
+            val renderList = mutableListOf<SearchResponse>()
+            if (rows != null && rows.isArray && rows.size() > 0) {
+                val rowIndex = (request.name.hashCode().let { kotlin.math.abs(it) } % rows.size())
+                val targetRow = rows.get(rowIndex) ?: rows.get(0)
+                val items = targetRow?.get("items")
+                if (items != null && items.isArray && items.size() > 0) {
+                    for (item in items) {
+                        val rTitle = item["title"]?.asText() ?: continue
+                        val rId = item["id"]?.asText() ?: continue
+                        val rPoster = item["poster"]?.asText()
+                        val typeStr = item["type"]?.asText() ?: "movie"
+                        val rType = if (typeStr.equals("series", true)) TvType.TvSeries else TvType.Movie
+                        renderList.add(
+                            newMovieSearchResponse(name = rTitle, url = rId, type = rType) {
+                                this.posterUrl = rPoster
+                                this.score = Score.from10(item["rating"]?.asText())
+                            }
+                        )
+                    }
+                    if (renderList.isNotEmpty()) {
+                        return newHomePageResponse(listOf(HomePageList(request.name, renderList)))
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
         val perPage = 15
         val url = if (request.data.contains("|")) "$mainUrl/wefeed-mobile-bff/subject-api/list" else "$mainUrl/wefeed-mobile-bff/tab/ranking-list?tabId=0&categoryType=${request.data}&page=$page&perPage=$perPage"
 
@@ -535,7 +567,30 @@ class MovieBoxProvider : MainAPI() {
     }
 
     override suspend fun search(query: String,page: Int): SearchResponseList {
-        
+        val searchList = mutableListOf<SearchResponse>()
+        try {
+            val renderUrl = "$RENDER_API_BASE/search?q=${URLEncoder.encode(query, "UTF-8")}&api_key=$RENDER_API_KEY"
+            val rResp = app.get(renderUrl, timeout = 12L).text
+            val rRoot = jacksonObjectMapper().readTree(rResp)
+            val rResults = rRoot.get("results")
+            if (rResults != null && rResults.isArray && rResults.size() > 0) {
+                for (item in rResults) {
+                    val rTitle = item["title"]?.asText() ?: continue
+                    val rId = item["id"]?.asText() ?: continue
+                    val rPoster = item["poster"]?.asText()
+                    val typeStr = item["type"]?.asText() ?: "movie"
+                    val rType = if (typeStr.equals("series", true) || typeStr.equals("tv", true)) TvType.TvSeries else TvType.Movie
+                    searchList.add(
+                        newMovieSearchResponse(name = rTitle, url = rId, type = rType) {
+                            this.posterUrl = rPoster
+                            this.score = Score.from10(item["rating"]?.asText())
+                        }
+                    )
+                }
+                return searchList.toNewSearchResponseList()
+            }
+        } catch (_: Exception) {}
+
         val url = "$mainUrl/wefeed-mobile-bff/subject-api/search/v2"
         val jsonBody = """{"page": $page, "perPage": 20, "keyword": "$query"}"""
         var token = fetchAnonymousToken()
@@ -586,7 +641,6 @@ class MovieBoxProvider : MainAPI() {
         val mapper = jacksonObjectMapper()
         val root = mapper.readTree(responseBody)
         val results = root.get("data")?.get("results") ?: return newSearchResponseList(emptyList())
-        val searchList = mutableListOf<SearchResponse>()
         for (result in results) {
             val subjects = result["subjects"] ?: continue
             for (subject in subjects) {
@@ -614,40 +668,74 @@ class MovieBoxProvider : MainAPI() {
             )
             }
         }
-        if (searchList.isEmpty()) {
-            try {
-                val renderUrl = "$RENDER_API_BASE/search?q=${URLEncoder.encode(query, "UTF-8")}&api_key=$RENDER_API_KEY"
-                val rResp = app.get(renderUrl, timeout = 12L).text
-                val rRoot = jacksonObjectMapper().readTree(rResp)
-                val rResults = rRoot.get("results")
-                if (rResults != null && rResults.isArray) {
-                    for (item in rResults) {
-                        val rTitle = item["title"]?.asText() ?: continue
-                        val rId = item["id"]?.asText() ?: continue
-                        val rPoster = item["poster"]?.asText()
-                        val typeStr = item["type"]?.asText() ?: "movie"
-                        val rType = if (typeStr.equals("series", true) || typeStr.equals("tv", true)) TvType.TvSeries else TvType.Movie
-                        searchList.add(
-                            newMovieSearchResponse(name = rTitle, url = rId, type = rType) {
-                                this.posterUrl = rPoster
-                                this.score = Score.from10(item["rating"]?.asText())
-                            }
-                        )
-                    }
-                }
-            } catch (_: Exception) {}
-        }
         return searchList.toNewSearchResponseList()
     }
 
     override suspend fun load(url: String): LoadResponse {
-        
-
         val id = Regex("""subjectId=([^&]+)""")
             .find(url)
             ?.groupValues?.get(1)
             ?: url.substringAfterLast('/')
 
+        try {
+            val rUrl = "$RENDER_API_BASE/details?id=$id&api_key=$RENDER_API_KEY"
+            val rResp = app.get(rUrl, timeout = 12L).text
+            val rRoot = jacksonObjectMapper().readTree(rResp)
+            val det = rRoot.get("details")
+            if (det != null && det.isObject) {
+                val rTitle = det["title"]?.asText() ?: "Movie"
+                val rDesc = det["desc"]?.asText() ?: ""
+                val rPoster = det["poster"]?.asText()
+                val rBackdrop = det["backdrop"]?.asText() ?: rPoster
+                val rYear = det["year"]?.asText()?.toIntOrNull()
+                val isSeries = det["isSeries"]?.asBoolean() ?: false
+                val seasons = det["seasons"]
+                val rRating = det["rating"]?.asText()
+
+                val actorsList = det["actors"]?.mapNotNull { a ->
+                    val aname = a["name"]?.asText() ?: return@mapNotNull null
+                    val achar = a["character"]?.asText()
+                    ActorData(Actor(aname, null), roleString = achar)
+                } ?: emptyList()
+
+                if (isSeries && seasons != null && seasons.isArray && seasons.size() > 0) {
+                    val episodesList = mutableListOf<Episode>()
+                    for (s in seasons) {
+                        val sNum = s["season"]?.asInt() ?: 1
+                        val eps = s["episodes"]
+                        if (eps != null && eps.isArray) {
+                            for (ep in eps) {
+                                val epNum = ep.asInt()
+                                episodesList.add(
+                                    newEpisode("$id|$sNum|$epNum") {
+                                        this.name = "Episode $epNum"
+                                        this.season = sNum
+                                        this.episode = epNum
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    return newTvSeriesLoadResponse(rTitle, url, TvType.TvSeries, episodesList) {
+                        this.posterUrl = rPoster
+                        this.backgroundPosterUrl = rBackdrop
+                        this.plot = rDesc
+                        this.year = rYear
+                        this.actors = actorsList
+                        this.score = Score.from10(rRating)
+                    }
+                } else {
+                    return newMovieLoadResponse(rTitle, url, TvType.Movie, "$id|0|0") {
+                        this.posterUrl = rPoster
+                        this.backgroundPosterUrl = rBackdrop
+                        this.plot = rDesc
+                        this.year = rYear
+                        this.actors = actorsList
+                        this.score = Score.from10(rRating)
+                    }
+                }
+            }
+        } catch (_: Exception) {}
 
         val finalUrl = "$mainUrl/wefeed-mobile-bff/subject-api/get?subjectId=$id"
         var token = fetchAnonymousToken()
@@ -935,6 +1023,41 @@ class MovieBoxProvider : MainAPI() {
 
             val season = if (parts.size > 1) parts[1].toIntOrNull() ?: 0 else 0
             val episode = if (parts.size > 2) parts[2].toIntOrNull() ?: 0 else 0
+
+            val mapper = jacksonObjectMapper()
+            try {
+                val rUrl = "$RENDER_API_BASE/streams?id=$originalSubjectId&se=$season&ep=$episode&api_key=$RENDER_API_KEY"
+                val rResp = app.get(rUrl, timeout = 12L).text
+                val rRoot = mapper.readTree(rResp)
+                val rStreams = rRoot.get("streams")
+                var renderStreamCount = 0
+                if (rStreams != null && rStreams.isArray && rStreams.size() > 0) {
+                    for (st in rStreams) {
+                        val origUrl = st["originalUrl"]?.asText() ?: continue
+                        val format = st["format"]?.asText() ?: "DASH"
+                        val cookie = st["cookie"]?.asText()
+                        val headersMap = mutableMapOf<String, String>()
+                        if (!cookie.isNullOrEmpty()) {
+                            headersMap["Cookie"] = cookie
+                        }
+                        callback(
+                            newExtractorLink(
+                                name = "Ayushflix (${st["language"]?.asText() ?: "Server"})",
+                                source = "Ayushflix Cloud",
+                                url = origUrl,
+                                type = if (format == "DASH") ExtractorLinkType.DASH else ExtractorLinkType.VIDEO
+                            ) {
+                                this.headers = headersMap
+                            }
+                        )
+                        renderStreamCount++
+                    }
+                    if (renderStreamCount > 0) {
+                        return true
+                    }
+                }
+            } catch (_: Exception) {}
+
             val subjectUrl = "$mainUrl/wefeed-mobile-bff/subject-api/get?subjectId=$originalSubjectId"
             var token = fetchAnonymousToken()
             val subjectXClientToken = generateXClientToken()
@@ -964,7 +1087,6 @@ class MovieBoxProvider : MainAPI() {
                 }
             }
 
-            val mapper = jacksonObjectMapper()
             val subjectIds = mutableListOf<Pair<String, String>>() // Pair of (subjectId, language)
             var originalLanguageName = "Original"
             if (subjectResponse.code == 200) {
