@@ -64,8 +64,9 @@ class MovieBoxProvider : MainAPI() {
         var context: android.content.Context? = null
         const val RENDER_API_BASE = "https://jaatayushh.onrender.com/api"
         const val RENDER_API_KEY = "ayush_live_d7a3b801c820fca9a61e04cd541519e7"
+        const val UPSTREAM_API_URL = "https://api3.aoneroom.com"
     }
-    override var mainUrl = "https://api3.aoneroom.com"
+    override var mainUrl = "https://jaatayushh.onrender.com"
     override var name = "Ayushflix"
     override val hasMainPage = true
     override var lang = "hi"
@@ -377,7 +378,7 @@ class MovieBoxProvider : MainAPI() {
         try {
             val tab = if (request.name.contains("series", true) || request.name.contains("drama", true) || request.data.contains("|2")) "series" else "all"
             val rUrl = "$RENDER_API_BASE/home?tab=$tab&api_key=$RENDER_API_KEY"
-            val rResp = app.get(rUrl, timeout = 12L).text
+            val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
             val rRoot = jacksonObjectMapper().readTree(rResp)
             val rows = rRoot.get("rows")
             val renderList = mutableListOf<SearchResponse>()
@@ -407,7 +408,7 @@ class MovieBoxProvider : MainAPI() {
         } catch (_: Exception) {}
 
         val perPage = 15
-        val url = if (request.data.contains("|")) "$mainUrl/wefeed-mobile-bff/subject-api/list" else "$mainUrl/wefeed-mobile-bff/tab/ranking-list?tabId=0&categoryType=${request.data}&page=$page&perPage=$perPage"
+        val url = if (request.data.contains("|")) "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/list" else "$UPSTREAM_API_URL/wefeed-mobile-bff/tab/ranking-list?tabId=0&categoryType=${request.data}&page=$page&perPage=$perPage"
 
         val data1 = request.data
 
@@ -570,7 +571,7 @@ class MovieBoxProvider : MainAPI() {
         val searchList = mutableListOf<SearchResponse>()
         try {
             val renderUrl = "$RENDER_API_BASE/search?q=${URLEncoder.encode(query, "UTF-8")}&api_key=$RENDER_API_KEY"
-            val rResp = app.get(renderUrl, timeout = 12L).text
+            val rResp = app.get(renderUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
             val rRoot = jacksonObjectMapper().readTree(rResp)
             val rResults = rRoot.get("results")
             if (rResults != null && rResults.isArray && rResults.size() > 0) {
@@ -591,7 +592,7 @@ class MovieBoxProvider : MainAPI() {
             }
         } catch (_: Exception) {}
 
-        val url = "$mainUrl/wefeed-mobile-bff/subject-api/search/v2"
+        val url = "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/search/v2"
         val jsonBody = """{"page": $page, "perPage": 20, "keyword": "$query"}"""
         var token = fetchAnonymousToken()
         val xClientToken = generateXClientToken()
@@ -679,7 +680,7 @@ class MovieBoxProvider : MainAPI() {
 
         try {
             val rUrl = "$RENDER_API_BASE/details?id=$id&api_key=$RENDER_API_KEY"
-            val rResp = app.get(rUrl, timeout = 12L).text
+            val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
             val rRoot = jacksonObjectMapper().readTree(rResp)
             val det = rRoot.get("details")
             if (det != null && det.isObject) {
@@ -697,6 +698,8 @@ class MovieBoxProvider : MainAPI() {
                     val achar = a["character"]?.asText()
                     ActorData(Actor(aname, null), roleString = achar)
                 } ?: emptyList()
+
+                val watchUrl = "$mainUrl/watch/$id"
 
                 if (isSeries && seasons != null && seasons.isArray && seasons.size() > 0) {
                     val episodesList = mutableListOf<Episode>()
@@ -716,7 +719,7 @@ class MovieBoxProvider : MainAPI() {
                             }
                         }
                     }
-                    return newTvSeriesLoadResponse(rTitle, url, TvType.TvSeries, episodesList) {
+                    return newTvSeriesLoadResponse(rTitle, watchUrl, TvType.TvSeries, episodesList) {
                         this.posterUrl = rPoster
                         this.backgroundPosterUrl = rBackdrop
                         this.plot = rDesc
@@ -725,7 +728,7 @@ class MovieBoxProvider : MainAPI() {
                         this.score = Score.from10(rRating)
                     }
                 } else {
-                    return newMovieLoadResponse(rTitle, url, TvType.Movie, "$id|0|0") {
+                    return newMovieLoadResponse(rTitle, watchUrl, TvType.Movie, "$id|0|0") {
                         this.posterUrl = rPoster
                         this.backgroundPosterUrl = rBackdrop
                         this.plot = rDesc
@@ -737,7 +740,7 @@ class MovieBoxProvider : MainAPI() {
             }
         } catch (_: Exception) {}
 
-        val finalUrl = "$mainUrl/wefeed-mobile-bff/subject-api/get?subjectId=$id"
+        val finalUrl = "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/get?subjectId=$id"
         var token = fetchAnonymousToken()
         val xClientToken = generateXClientToken()
         val xTrSignature = generateXTrSignature("GET", "application/json", "application/json", finalUrl)
@@ -884,7 +887,7 @@ class MovieBoxProvider : MainAPI() {
             val episodeMap = mutableMapOf<Int, MutableSet<Int>>() // season -> episodes
 
             for (subjectId in allSubjectIds) {
-                val seasonUrl = "$mainUrl/wefeed-mobile-bff/subject-api/season-info?subjectId=$subjectId"
+                val seasonUrl = "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/season-info?subjectId=$subjectId"
                 val seasonSig = generateXTrSignature("GET", "application/json", "application/json", seasonUrl)
 
                 val seasonHeaders = headers.toMutableMap().apply {
@@ -1027,7 +1030,7 @@ class MovieBoxProvider : MainAPI() {
             val mapper = jacksonObjectMapper()
             try {
                 val rUrl = "$RENDER_API_BASE/streams?id=$originalSubjectId&se=$season&ep=$episode&api_key=$RENDER_API_KEY"
-                val rResp = app.get(rUrl, timeout = 12L).text
+                val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
                 val rRoot = mapper.readTree(rResp)
                 val rStreams = rRoot.get("streams")
                 var renderStreamCount = 0
@@ -1058,7 +1061,7 @@ class MovieBoxProvider : MainAPI() {
                 }
             } catch (_: Exception) {}
 
-            val subjectUrl = "$mainUrl/wefeed-mobile-bff/subject-api/get?subjectId=$originalSubjectId"
+            val subjectUrl = "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/get?subjectId=$originalSubjectId"
             var token = fetchAnonymousToken()
             val subjectXClientToken = generateXClientToken()
             val subjectXTrSignature = generateXTrSignature("GET", "application/json", "application/json", subjectUrl)
@@ -1137,7 +1140,7 @@ class MovieBoxProvider : MainAPI() {
             // Process each subjectId (Hindi first, then original and others)
             for ((subjectId, language) in sortedSubjectIds) {
                 try {
-                    val url = "$mainUrl/wefeed-mobile-bff/subject-api/play-info?subjectId=$subjectId&se=$season&ep=$episode"
+                    val url = "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/play-info?subjectId=$subjectId&se=$season&ep=$episode"
 
                     val xClientToken = generateXClientToken()
                     val xTrSignature = generateXTrSignature("GET", "application/json", "application/json", url)
@@ -1229,7 +1232,7 @@ class MovieBoxProvider : MainAPI() {
                                 )
                                 hasValidStream = true
 
-                                val subLink = "$mainUrl/wefeed-mobile-bff/subject-api/get-stream-captions?subjectId=$subjectId&streamId=$id"
+                                val subLink = "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/get-stream-captions?subjectId=$subjectId&streamId=$id"
                                 val xClientToken = generateXClientToken()
                                 val xTrSignature = generateXTrSignature("GET", "", "", subLink)
                                 val subHeaders = mutableMapOf(
@@ -1263,7 +1266,7 @@ class MovieBoxProvider : MainAPI() {
                                     }
                                 }
 
-                                val subLink1 = "$mainUrl/wefeed-mobile-bff/subject-api/get-ext-captions?subjectId=$subjectId&resourceId=$id&episode=0"
+                                val subLink1 = "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/get-ext-captions?subjectId=$subjectId&resourceId=$id&episode=0"
                                 val xClientToken1 = generateXClientToken()
                                 val xTrSignature1 = generateXTrSignature("GET", "", "", subLink1)
                                 val subHeaders1 = mutableMapOf(
@@ -1302,7 +1305,7 @@ class MovieBoxProvider : MainAPI() {
 
                         // Fallback if no valid streams were extracted
                         if (!hasValidStream) {
-                            val fallbackUrl = "$mainUrl/wefeed-mobile-bff/subject-api/get?subjectId=$subjectId"
+                            val fallbackUrl = "$UPSTREAM_API_URL/wefeed-mobile-bff/subject-api/get?subjectId=$subjectId"
                             val fallbackHeaders = headers.toMutableMap().apply {
                                 put("x-tr-signature", generateXTrSignature(
                                     "GET",
