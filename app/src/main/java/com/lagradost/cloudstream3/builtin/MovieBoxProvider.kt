@@ -1045,8 +1045,8 @@ class MovieBoxProvider : MainAPI() {
                         }
                         callback(
                             newExtractorLink(
-                                name = "Ayushflix (${st["language"]?.asText() ?: "Server"})",
-                                source = "Ayushflix Cloud",
+                                name = "Ayush API • ${st["language"]?.asText() ?: "Original Audio"}",
+                                source = "Ayush API (Singapore)",
                                 url = origUrl,
                                 type = if (format == "DASH") ExtractorLinkType.DASH else ExtractorLinkType.VIDEO
                             ) {
@@ -1206,8 +1206,8 @@ class MovieBoxProvider : MainAPI() {
 
                                 callback.invoke(
                                     newExtractorLink(
-                                        source = "$name ${language.replace("dub", "Audio").trim()}",
-                                        name = "$name (${language.replace("dub", "Audio").trim()})",
+                                        source = "Original Direct (Backup)",
+                                        name = "Backup • ${language.replace("dub", "Audio").trim()}",
                                         url = resolvedUrl,
                                         type = when {
                                             resolvedUrl.startsWith("magnet:", ignoreCase = true) -> ExtractorLinkType.MAGNET
