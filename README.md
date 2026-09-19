@@ -26,13 +26,13 @@ Unlike generic media centers that require hunting down third-party repository UR
 
 ---
 
-## ⚡ Direct Download (v1.0.8)
+## ⚡ Direct Download (v1.0.9)
 
 | Platform | Format | Size | Architecture | Direct Download |
 | :--- | :---: | :---: | :---: | :---: |
-| 📱 **Android Smartphone / Tablet** | `.apk` | **~50 MB** | `arm64-v8a`, `armeabi-v7a`, `x86_64` | [**Download Ayushflix-v1.0.8.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.8/Ayushflix-v1.0.8.apk) |
-| 📺 **Android TV / Google TV / FireStick** | `.apk` | **~50 MB** | Native 10-Foot Leanback UI | [**Download Ayushflix-v1.0.8.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.8/Ayushflix-v1.0.8.apk) |
-| 🖥️ **Windows 10 / 11 (WSA / Emulator)** | `.apk` | **~50 MB** | Native Desktop Window | [**Download Ayushflix-v1.0.8.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.8/Ayushflix-v1.0.8.apk) |
+| 📱 **Android Smartphone / Tablet** | `.apk` | **~50 MB** | `arm64-v8a`, `armeabi-v7a`, `x86_64` | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
+| 📺 **Android TV / Google TV / FireStick** | `.apk` | **~50 MB** | Native 10-Foot Leanback UI | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
+| 🖥️ **Windows 10 / 11 (WSA / Emulator)** | `.apk` | **~50 MB** | Native Desktop Window | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
 
 ---
 
@@ -66,14 +66,14 @@ dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /nores
 **Option A: 1-Liner PowerShell Command (Fastest)**
 Open PowerShell and run:
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/jaatayushh/ayushflix/releases/download/v1.0.8/Ayushflix-v1.0.8.apk" -OutFile "$env:TEMP\Ayushflix.apk"
+Invoke-WebRequest -Uri "https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk" -OutFile "$env:TEMP\Ayushflix.apk"
 adb connect 127.0.0.1:58526
 adb install -r "$env:TEMP\Ayushflix.apk"
 ```
 
 **Option B: 1-Click GUI via WSA-Pacman**
 1. Download and install **[WSA-Pacman](https://github.com/alesimula/wsa_pacman/releases/latest)**.
-2. Download [**Ayushflix-v1.0.8.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.8/Ayushflix-v1.0.8.apk).
+2. Download [**Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk).
 3. Double-click the APK and click **Install**.
 
 Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
@@ -123,7 +123,7 @@ Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
 ## 📲 Mobile & TV Installation Guide
 
 ### 📱 Android Smartphone / Tablet
-1. Download [**Ayushflix-v1.0.8.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.8/Ayushflix-v1.0.8.apk).
+1. Download [**Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk).
 2. Tap the downloaded `.apk` file.
 3. If prompted, toggle **Allow from this source** in your device settings.
 4. Tap **Install** and launch **Ayushflix**!
@@ -131,13 +131,13 @@ Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
 ### 📺 Android TV, Google TV & Amazon FireStick
 1. **Method A (Send Files to TV)**:
    - Install *Send Files to TV* on both your phone/PC and your Android TV.
-   - Send `Ayushflix-v1.0.8.apk` to your TV and install using a file manager (e.g., *File Commander*).
+   - Send `Ayushflix-v1.0.9.apk` to your TV and install using a file manager (e.g., *File Commander*).
 2. **Method B (USB Drive)**:
-   - Copy `Ayushflix-v1.0.8.apk` onto a FAT32/NTFS formatted USB flash drive.
+   - Copy `Ayushflix-v1.0.9.apk` onto a FAT32/NTFS formatted USB flash drive.
    - Plug into your TV, open a file manager, and select the APK to install.
 3. **Method C (Downloader App)**:
    - Open the *Downloader* app on FireStick / Android TV.
-   - Enter the direct release URL: `https://github.com/jaatayushh/ayushflix/releases/download/v1.0.8/Ayushflix-v1.0.8.apk` to download and install.
+   - Enter the direct release URL: `https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk` to download and install.
 
 ---
 
@@ -160,7 +160,7 @@ Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
    ```
 3. The compiled APK will be located at:
    ```
-   app/build/outputs/apk/stable/release/Ayushflix-v1.0.8.apk
+   app/build/outputs/apk/stable/release/Ayushflix-v1.0.9.apk
    ```
 
 ---

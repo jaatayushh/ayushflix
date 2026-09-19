@@ -64,7 +64,7 @@ jobs:
           echo "Found APK: $APK_FILE"
           TAG="${{ github.ref_name }}"
           if [[ ! "$TAG" =~ ^v ]]; then
-            TAG="v1.0.8"
+            TAG="v1.0.9"
           fi
           ASSET_NAME="Ayushflix-${TAG}.apk"
           cp "$APK_FILE" "release_assets/${ASSET_NAME}"
@@ -88,12 +88,12 @@ jobs:
           body: |
             ## Ayushflix ${{ steps.prepare_asset.outputs.tag_name }}
 
-            - Worldwide streaming fix: search and movie loading now works reliably in all countries (US, UK, CA, EU, IN, etc.)
-            - Multi-domain fallback for guest tokens (`api3.aoneroom.com` / `apig.inmoviebox.com`)
-            - Dynamic regional User-Agent and package detection
-            - Refined Family Safe filter (blocks adult platforms like Ullu, Kooku, Hotshots, etc. without false-positives on mainstream movies)
-            - Optimized TMDb and metadata network timeouts
-            - Smooth 1080p HEVC playback and auto-hiding mouse cursor for PC (WSA)
+            - Integrated personal Singapore Render API as primary search, details, and video engine
+            - Seamless zero-downtime automatic fallback to original upstream servers
+            - Dynamic stream labels in player (`Ayush API (Singapore)` vs `Original Direct (Backup)`)
+            - Hold-to-2x playback speed & speed selector auto-enabled by default
+            - Clean Ko-fi donation dialog on every 4th launch (permanent dismiss supported)
+            - Fixed external website globe links to point to official portal
           files: ${{ steps.prepare_asset.outputs.asset_path }}
           draft: false
           prerelease: false
