@@ -63,11 +63,22 @@ class MovieBoxProvider : MainAPI() {
     companion object {
         var context: android.content.Context? = null
         const val RENDER_API_BASE = "https://jaatayushh.onrender.com/api"
-        const val RENDER_API_KEY = "ayush_live_d7a3b801c820fca9a61e04cd541519e7"
         const val UPSTREAM_API_URL = "https://api3.aoneroom.com"
+
+        val API_KEYS = listOf(
+            "ayush_live_dev_7f8a9b1c2d3e4f506172",
+            "ayush_live_7c36d4541d7c501fdd3967f4e18303c9",
+            "ayush_live_3061430492d6b6d9d58345434f251ae5",
+            "ayush_live_0adabf9608754f5fb117c90b3b6957d5"
+        )
+        private val keyIndex = java.util.concurrent.atomic.AtomicInteger(0)
+        fun getApiKey(): String {
+            val idx = Math.abs(keyIndex.getAndIncrement() % API_KEYS.size)
+            return API_KEYS[idx]
+        }
     }
     override var mainUrl = "https://jaatayushh.onrender.com"
-    override var name = "Ayushflix"
+    override var name = "Ayush Flix"
     override val hasMainPage = true
     override var lang = "hi"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
@@ -377,8 +388,9 @@ class MovieBoxProvider : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         try {
             val tab = if (request.name.contains("series", true) || request.name.contains("drama", true) || request.data.contains("|2")) "series" else "all"
-            val rUrl = "$RENDER_API_BASE/home?tab=$tab&api_key=$RENDER_API_KEY"
-            val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
+            val apiKey = getApiKey()
+            val rUrl = "$RENDER_API_BASE/home?tab=$tab&api_key=$apiKey"
+            val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to apiKey), timeout = 12L).text
             val rRoot = jacksonObjectMapper().readTree(rResp)
             val rows = rRoot.get("rows")
             val renderList = mutableListOf<SearchResponse>()
@@ -530,8 +542,9 @@ class MovieBoxProvider : MainAPI() {
                 data
             } else {
                 try {
-                    val rUrl = "$RENDER_API_BASE/home?tab=all&api_key=$RENDER_API_KEY"
-                    val rResp = app.get(rUrl, timeout = 12L).text
+                    val apiKey = getApiKey()
+                    val rUrl = "$RENDER_API_BASE/home?tab=all&api_key=$apiKey"
+                    val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to apiKey), timeout = 12L).text
                     val rRoot = jacksonObjectMapper().readTree(rResp)
                     val rows = rRoot.get("rows")
                     val fallbackList = mutableListOf<SearchResponse>()
@@ -570,8 +583,9 @@ class MovieBoxProvider : MainAPI() {
     override suspend fun search(query: String,page: Int): SearchResponseList {
         val searchList = mutableListOf<SearchResponse>()
         try {
-            val renderUrl = "$RENDER_API_BASE/search?q=${URLEncoder.encode(query, "UTF-8")}&api_key=$RENDER_API_KEY"
-            val rResp = app.get(renderUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
+            val apiKey = getApiKey()
+            val renderUrl = "$RENDER_API_BASE/search?q=${URLEncoder.encode(query, "UTF-8")}&api_key=$apiKey"
+            val rResp = app.get(renderUrl, headers = mapOf("X-API-Key" to apiKey), timeout = 12L).text
             val rRoot = jacksonObjectMapper().readTree(rResp)
             val rResults = rRoot.get("results")
             if (rResults != null && rResults.isArray && rResults.size() > 0) {
@@ -679,8 +693,9 @@ class MovieBoxProvider : MainAPI() {
             ?: url.substringAfterLast('/')
 
         try {
-            val rUrl = "$RENDER_API_BASE/details?id=$id&api_key=$RENDER_API_KEY"
-            val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
+            val apiKey = getApiKey()
+            val rUrl = "$RENDER_API_BASE/details?id=$id&api_key=$apiKey"
+            val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to apiKey), timeout = 12L).text
             val rRoot = jacksonObjectMapper().readTree(rResp)
             val det = rRoot.get("details")
             if (det != null && det.isObject) {
@@ -1029,8 +1044,9 @@ class MovieBoxProvider : MainAPI() {
 
             val mapper = jacksonObjectMapper()
             try {
-                val rUrl = "$RENDER_API_BASE/streams?id=$originalSubjectId&se=$season&ep=$episode&api_key=$RENDER_API_KEY"
-                val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
+                val apiKey = getApiKey()
+                val rUrl = "$RENDER_API_BASE/streams?id=$originalSubjectId&se=$season&ep=$episode&api_key=$apiKey"
+                val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to apiKey), timeout = 12L).text
                 val rRoot = mapper.readTree(rResp)
                 val rStreams = rRoot.get("streams")
                 val rSubs = rRoot.get("subtitles")
@@ -1058,7 +1074,7 @@ class MovieBoxProvider : MainAPI() {
                         }
                         callback(
                             newExtractorLink(
-                                name = "Ayush API • ${st["language"]?.asText() ?: "Original Audio"}",
+                                name = "Ayush Flix • ${st["language"]?.asText() ?: "Original Audio"}",
                                 source = "Ayush API (Singapore)",
                                 url = origUrl,
                                 type = if (format == "DASH") ExtractorLinkType.DASH else ExtractorLinkType.VIDEO
@@ -1368,8 +1384,9 @@ class MovieBoxProvider : MainAPI() {
             }
 
             try {
-                val rUrl = "$RENDER_API_BASE/streams?id=$originalSubjectId&se=$season&ep=$episode&api_key=$RENDER_API_KEY"
-                val rResp = app.get(rUrl, timeout = 12L).text
+                val apiKey = getApiKey()
+                val rUrl = "$RENDER_API_BASE/streams?id=$originalSubjectId&se=$season&ep=$episode&api_key=$apiKey"
+                val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to apiKey), timeout = 12L).text
                 val rRoot = mapper.readTree(rResp)
                 val rStreams = rRoot.get("streams")
                 val rSubs = rRoot.get("subtitles")
@@ -1396,8 +1413,8 @@ class MovieBoxProvider : MainAPI() {
                         }
                         callback(
                             newExtractorLink(
-                                name = "Ayushflix (${st["language"]?.asText() ?: "Server"})",
-                                source = "Ayushflix Cloud",
+                                name = "Ayush Flix (${st["language"]?.asText() ?: "Server"})",
+                                source = "Ayush Flix Cloud",
                                 url = origUrl,
                                 type = if (format == "DASH") ExtractorLinkType.DASH else ExtractorLinkType.VIDEO
                             ) {
