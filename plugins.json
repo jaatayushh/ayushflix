@@ -1,24 +1,23 @@
 [
   {
-    "name": "MovieBoxProvider",
-    "internalName": "MovieBoxProvider",
-    "version": 49,
+    "name": "Ayushflix",
+    "internalName": "Ayushflix",
+    "version": 50,
     "apiVersion": 1,
-    "url": "https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/MovieBoxProvider.cs3",
+    "url": "https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix.cs3",
     "iconUrl": "https://raw.githubusercontent.com/jaatayushh/tempoflixayush/main/static/img/ayushflix-logo.png",
     "authors": [
-      "Ayush Gulia",
-      "NivinCNC"
+      "Ayush Gulia"
     ],
     "repositoryUrl": "https://github.com/jaatayushh/ayushflix",
-    "description": "Multi Language Movies & Series Provider with Hindi priority, 1080p DASH playback, and zero ads.",
+    "description": "Official Ayushflix streaming provider with 1080p FHD streams, smart Hindi dub priority, and zero ads.",
     "tvTypes": [
       "Movie",
       "TvSeries"
     ],
     "language": "hi",
     "status": 1,
-    "fileSize": 98053,
-    "fileHash": "sha256-1347030b17517227cdcca2ddde5bf0529c1bcc251da8e1244fd939ef1a6c1ac7"
+    "fileSize": 96720,
+    "fileHash": "sha256-09cc863cce00380bdffaa09aa5507c8587cb02db4d2975640c0164b9e55db746"
   }
 ]
