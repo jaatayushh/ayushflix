@@ -33,6 +33,11 @@ Unlike generic media centers that require hunting down third-party repository UR
 | 📱 **Android Smartphone / Tablet** | `.apk` | **~50 MB** | `arm64-v8a`, `armeabi-v7a`, `x86_64` | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
 | 📺 **Android TV / Google TV / FireStick** | `.apk` | **~50 MB** | Native 10-Foot Leanback UI | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
 | 🖥️ **Windows 10 / 11 (WSA / Emulator)** | `.apk` | **~50 MB** | Native Desktop Window | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
+| 🧩 **CloudStream 3 (Extension Plugin)** | `.cs3` | **~98 KB** | CloudStream 3 / Aniyomi | [**Download MovieBoxProvider.cs3**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/MovieBoxProvider.cs3) |
+
+> 💡 **CloudStream 3 In-App Repository URL**:  
+> In CloudStream 3, go to **Settings ➔ Extensions ➔ Add Repository** and enter:  
+> `https://raw.githubusercontent.com/jaatayushh/ayushflix/main/repo.json`
 
 ---
 
