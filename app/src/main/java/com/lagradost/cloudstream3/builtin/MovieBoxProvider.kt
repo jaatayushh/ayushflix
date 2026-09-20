@@ -1033,6 +1033,19 @@ class MovieBoxProvider : MainAPI() {
                 val rResp = app.get(rUrl, headers = mapOf("X-API-Key" to RENDER_API_KEY), timeout = 12L).text
                 val rRoot = mapper.readTree(rResp)
                 val rStreams = rRoot.get("streams")
+                val rSubs = rRoot.get("subtitles")
+                if (rSubs != null && rSubs.isArray) {
+                    for (sub in rSubs) {
+                        val subUrl = sub["url"]?.asText() ?: continue
+                        val subLang = sub["language"]?.asText() ?: "English"
+                        subtitleCallback.invoke(
+                            newSubtitleFile(
+                                url = subUrl,
+                                lang = subLang
+                            )
+                        )
+                    }
+                }
                 var renderStreamCount = 0
                 if (rStreams != null && rStreams.isArray && rStreams.size() > 0) {
                     for (st in rStreams) {
@@ -1359,6 +1372,19 @@ class MovieBoxProvider : MainAPI() {
                 val rResp = app.get(rUrl, timeout = 12L).text
                 val rRoot = mapper.readTree(rResp)
                 val rStreams = rRoot.get("streams")
+                val rSubs = rRoot.get("subtitles")
+                if (rSubs != null && rSubs.isArray) {
+                    for (sub in rSubs) {
+                        val subUrl = sub["url"]?.asText() ?: continue
+                        val subLang = sub["language"]?.asText() ?: "English"
+                        subtitleCallback.invoke(
+                            newSubtitleFile(
+                                url = subUrl,
+                                lang = subLang
+                            )
+                        )
+                    }
+                }
                 if (rStreams != null && rStreams.isArray) {
                     for (st in rStreams) {
                         val origUrl = st["originalUrl"]?.asText() ?: continue
