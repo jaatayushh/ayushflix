@@ -384,37 +384,44 @@ object PluginManager {
                 }
             } catch (_: Exception) {}
 
-            for (assetPath in candidates.distinct()) {
+            // Deduplicate candidates by their file name (e.g. plugins/CNC Verse.cs3 vs CNC Verse.cs3)
+            val uniqueCandidates = candidates.distinctBy { File(it).name }
+
+            val prefs = context.getSharedPreferences("bundled_plugins_sync", Context.MODE_PRIVATE)
+            val lastVersion = prefs.getInt("version_code", -1)
+            val currentVersion = com.lagradost.cloudstream3.BuildConfig.VERSION_CODE
+            val isNewVersion = (lastVersion != currentVersion)
+
+            for (assetPath in uniqueCandidates) {
                 val fileName = File(assetPath).name
                 val outFile = File(bundledDir, fileName)
 
-                var shouldCopy = !outFile.exists()
-                if (!shouldCopy) {
-                    try {
-                        val assetLength = context.assets.open(assetPath).use { it.available().toLong() }
-                        if (outFile.length() != assetLength) {
-                            shouldCopy = true
-                        }
-                    } catch (_: Exception) {}
-                }
+                val shouldCopy = isNewVersion || !outFile.exists() || outFile.length() == 0L
 
                 if (shouldCopy) {
                     try {
-                        if (outFile.exists()) {
-                            outFile.setWritable(true)
-                            outFile.delete()
+                        val tempFile = File(bundledDir, "${fileName}.tmp")
+                        if (tempFile.exists()) {
+                            tempFile.delete()
                         }
                         context.assets.open(assetPath).use { input ->
-                            outFile.outputStream().use { output ->
+                            tempFile.outputStream().use { output ->
                                 input.copyTo(output)
                             }
+                        }
+                        if (tempFile.exists() && tempFile.length() > 0) {
+                            if (outFile.exists()) {
+                                outFile.setWritable(true)
+                                outFile.delete()
+                            }
+                            tempFile.renameTo(outFile)
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to copy bundled plugin $assetPath", e)
                     }
                 }
 
-                if (outFile.exists()) {
+                if (outFile.exists() && outFile.length() > 0) {
                     val pluginData = PluginData(
                         internalName = outFile.nameWithoutExtension,
                         url = null,
@@ -425,6 +432,8 @@ object PluginManager {
                     loadPlugin(context, outFile, pluginData)
                 }
             }
+
+            prefs.edit().putInt("version_code", currentVersion).apply()
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to load bundled plugins", t)
         }

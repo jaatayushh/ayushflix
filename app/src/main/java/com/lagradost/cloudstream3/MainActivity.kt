@@ -23,6 +23,9 @@ import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
+import android.webkit.CookieManager
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.IdRes
 import androidx.annotation.MainThread
@@ -234,6 +237,123 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
          */
         fun deleteFileOnExit(file: File) {
             filesToDelete = filesToDelete + file.path
+        }
+
+        fun syncNetmirrorCookie(activity: MainActivity) {
+            val prefs = activity.getSharedPreferences("NetflixMirrorPrefs", Context.MODE_PRIVATE)
+            val cookie = prefs.getString("nf_cookie", null)
+            val timestamp = prefs.getLong("nf_cookie_timestamp", 0L)
+            val now = System.currentTimeMillis()
+            val isFresh = !cookie.isNullOrBlank() && ((now - timestamp) < 43200000L) // 12 hours
+            if (isFresh) return
+
+            // 1. Check if CookieManager already has t_hash_t for net52.cc
+            try {
+                val existingCookies = CookieManager.getInstance().getCookie("https://net52.cc")
+                if (existingCookies != null && existingCookies.contains("t_hash_t=")) {
+                    val tHash = existingCookies.substringAfter("t_hash_t=").substringBefore(";")
+                    if (tHash.isNotBlank()) {
+                        val editor = prefs.edit()
+                        editor.putString("nf_cookie", tHash)
+                        editor.putLong("nf_cookie_timestamp", System.currentTimeMillis())
+                        editor.apply()
+                        Log.i("NetmirrorWarm", "Captured t_hash_t from CookieManager: $tHash")
+                        return
+                    }
+                }
+            } catch (_: Throwable) {}
+
+            // 2. Direct OkHttp fetch with correct Net52 origin headers in background
+            ioSafe {
+                var solved = false
+                try {
+                    val url = "https://net52.cc/verify.php"
+                    val formBody = okhttp3.FormBody.Builder()
+                        .add("g-recaptcha-response", java.util.UUID.randomUUID().toString())
+                        .build()
+                    val request = okhttp3.Request.Builder()
+                        .url(url)
+                        .post(formBody)
+                        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+                        .header("Accept-Encoding", "gzip, deflate, br, zstd")
+                        .header("Accept-Language", "en-US,en;q=0.9")
+                        .header("Cache-Control", "max-age=0")
+                        .header("Connection", "keep-alive")
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .header("Origin", "https://net52.cc")
+                        .header("Referer", "https://net52.cc/")
+                        .header("sec-ch-ua", "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"")
+                        .header("sec-ch-ua-mobile", "?0")
+                        .header("sec-ch-ua-platform", "\"Windows\"")
+                        .header("Sec-Fetch-Dest", "document")
+                        .header("Sec-Fetch-Mode", "navigate")
+                        .header("Sec-Fetch-Site", "same-origin")
+                        .header("Sec-Fetch-User", "?1")
+                        .header("Upgrade-Insecure-Requests", "1")
+                        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36")
+                        .build()
+
+                    val client = okhttp3.OkHttpClient.Builder()
+                        .followRedirects(false)
+                        .followSslRedirects(false)
+                        .build()
+
+                    client.newCall(request).execute().use { response ->
+                        val setCookies = response.headers("Set-Cookie")
+                        val cookieHeader = setCookies.firstOrNull { it.startsWith("t_hash_t=") }
+                        if (cookieHeader != null) {
+                            val tHash = cookieHeader.substringAfter("t_hash_t=").substringBefore(";")
+                            if (tHash.isNotBlank()) {
+                                val editor = prefs.edit()
+                                editor.putString("nf_cookie", tHash)
+                                editor.putLong("nf_cookie_timestamp", System.currentTimeMillis())
+                                editor.apply()
+                                Log.i("NetmirrorWarm", "Successfully fetched t_hash_t via direct request")
+                                solved = true
+                            }
+                        }
+                    }
+                } catch (e: Throwable) {
+                    Log.w("NetmirrorWarm", "Direct verify request failed: ${e.message}")
+                }
+
+                // 3. If direct request failed (e.g. Cloudflare Turnstile challenge on US IP), warm via WebView on Main thread
+                if (!solved) {
+                    activity.runOnUiThread {
+                        try {
+                            val webView = WebView(activity)
+                            webView.settings.javaScriptEnabled = true
+                            webView.settings.domStorageEnabled = true
+                            webView.settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 5 Build/TQ3A.230901.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/144.0.7559.132 Safari/537.36"
+                            CookieManager.getInstance().setAcceptCookie(true)
+                            CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
+
+                            webView.webViewClient = object : WebViewClient() {
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    try {
+                                        val c = CookieManager.getInstance().getCookie("https://net52.cc")
+                                        if (c != null && c.contains("t_hash_t=")) {
+                                            val tHash = c.substringAfter("t_hash_t=").substringBefore(";")
+                                            if (tHash.isNotBlank()) {
+                                                val editor = prefs.edit()
+                                                editor.putString("nf_cookie", tHash)
+                                                editor.putLong("nf_cookie_timestamp", System.currentTimeMillis())
+                                                editor.apply()
+                                                Log.i("NetmirrorWarm", "Successfully captured t_hash_t from background WebView!")
+                                                webView.destroy()
+                                            }
+                                        }
+                                    } catch (_: Throwable) {}
+                                }
+                            }
+                            webView.loadUrl("https://net52.cc/home")
+                        } catch (t: Throwable) {
+                            Log.e("NetmirrorWarm", "Failed to launch background WebView", t)
+                        }
+                    }
+                }
+            }
         }
 
         /**
@@ -641,6 +761,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         super.onResume()
         afterPluginsLoadedEvent += ::onAllPluginsLoaded
         setActivityInstance(this)
+        syncNetmirrorCookie(this)
         try {
             if (isCastApiAvailable()) {
                 mSessionManager?.addSessionManagerListener(mSessionManagerListener)
@@ -1200,6 +1321,31 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         setNavigationBarColorCompat(R.attr.primaryGrayBackground)
         updateLocale()
         super.onCreate(savedInstanceState)
+        // Neutralize CNCVerse donation dialog completely
+        safe {
+            val today = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())
+            getSharedPreferences("cncverse_donation", MODE_PRIVATE)
+                .edit()
+                .putString("last_shown_day", today)
+                .putString("cncverse_donation_cached_month", today.substring(0, 6))
+                .apply()
+
+            supportFragmentManager.registerFragmentLifecycleCallbacks(
+                object : androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+                    override fun onFragmentAttached(
+                        fm: androidx.fragment.app.FragmentManager,
+                        f: androidx.fragment.app.Fragment,
+                        context: Context
+                    ) {
+                        if (f.javaClass.name.contains("Donation", ignoreCase = true)) {
+                            try {
+                                (f as? androidx.fragment.app.DialogFragment)?.dismissAllowingStateLoss()
+                            } catch (_: Throwable) {}
+                        }
+                    }
+                }, true
+            )
+        }
         try {
             if (isCastApiAvailable()) {
                 CastContext.getSharedInstance(this) { it.run() }
@@ -1350,6 +1496,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         } else if (lastError == null) {
             ioSafe {
                 PluginManager.loadBundledPlugins(this@MainActivity)
+                syncNetmirrorCookie(this@MainActivity)
                 APIHolder.initAll()
 
                 val defaultProvider = APIHolder.allProviders.firstOrNull { it.hasMainPage }?.name
