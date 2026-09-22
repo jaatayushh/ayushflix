@@ -88,10 +88,15 @@ jobs:
           body: |
             ## Ayushflix ${{ steps.prepare_asset.outputs.tag_name }}
 
-            - **Embedded CNC Verse Extension**: Built-in, hardcoded extension bundle featuring Netflix Mirror, Prime Video Mirror, HotStar Mirror, and Disney Studios.
-            - **Removed Donation Popups**: Completely neutralized donation dialog triggers for a clean, uninterrupted streaming experience.
-            - **Cleaned Engine**: Completely removed old MovieBox provider and hardcoded API keys.
-            - **Autonomous Startup**: Automatically unpacks and registers providers on launch with zero extra configuration.
+            **Universal update released with auto update enabled**
+
+            - **Universal TV & Mobile Device Routing**: Dynamically detects TV vs Mobile devices:
+              - Mobile gets CNC Verse Mobile (`NetflixM`, `PrimeVideoM`, `HotstarM`, `DisneyM`) with default home set to `NetflixM`.
+              - TV gets CNC Verse TV (`Netflix Mirror`, `Prime Video`, `Hotstar`, `Disney`) with default home set to `Netflix Mirror`.
+            - **Castle TV Included**: Available on both Mobile and TV with default Hindi audio priority.
+            - **Upstream Auto-Update Enabled**: Built-in background auto-sync directly from NivinCNC's official repository so scrapers update seamlessly while remaining hardcoded fallbacks.
+            - **Unified Single-Grid Search**: Cross-provider search results grouped into a single unified grid.
+            - **No Donation Popups**: Neutralized all donation dialog prompts.
           files: ${{ steps.prepare_asset.outputs.asset_path }}
           draft: false
           prerelease: false
