@@ -225,9 +225,15 @@ class GeneratorPlayer : FullScreenPlayer() {
         val tracks = player.getVideoTracks()
         playerBinding?.playerTracksBtt?.isVisible =
             tracks.allVideoTracks.size > 1 || tracks.allAudioTracks.size > 1
-        // Only set the preferred language if it is available.
-        // Otherwise, it may give some users audio track init failed!
-        if (tracks.allAudioTracks.any { it.language == preferredAudioTrackLanguage }) {
+        // Prioritize Hindi audio track if available (Castle TV / multi-audio content)
+        val hindiTrack = tracks.allAudioTracks.firstOrNull {
+            it.language?.equals("hi", ignoreCase = true) == true ||
+            it.language?.equals("hin", ignoreCase = true) == true ||
+            it.label?.contains("hindi", ignoreCase = true) == true
+        }
+        if (hindiTrack != null) {
+            player.setPreferredAudioTrack(hindiTrack.language, hindiTrack.id, hindiTrack.formatIndex)
+        } else if (tracks.allAudioTracks.any { it.language == preferredAudioTrackLanguage }) {
             player.setPreferredAudioTrack(preferredAudioTrackLanguage)
         }
         updatePlayerInfo()

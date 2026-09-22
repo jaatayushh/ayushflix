@@ -241,6 +241,7 @@ class SearchViewModel : ViewModel() {
                     }
 
                     _currentSearch.postValue(expandableSearches)
+                    _searchResponse.postValue(Resource.Success(bundleSearch(expandableSearches)))
                 }
 
                 if (currentSearchIndex != currentIndex) return@withContext // this should prevent rewrite of existing data bug

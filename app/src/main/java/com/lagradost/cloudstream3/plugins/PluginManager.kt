@@ -248,6 +248,11 @@ object PluginManager {
             apiName.equals("HotStar Mirror", ignoreCase = true) ||
             apiName.equals("Disney+ Mirror", ignoreCase = true) ||
             apiName.equals("Disney Studio", ignoreCase = true) ||
+            apiName.equals("Castle Tv", ignoreCase = true) ||
+            apiName.equals("Castle TV", ignoreCase = true) ||
+            apiName.equals("CastleTvProvider", ignoreCase = true) ||
+            apiName.equals("HDOProvider", ignoreCase = true) ||
+            apiName.equals("StreamFlix", ignoreCase = true) ||
             apiName.equals("Ayushflix", ignoreCase = true) ||
             apiName.equals("Ayush Fliz", ignoreCase = true)) return true
         return false
