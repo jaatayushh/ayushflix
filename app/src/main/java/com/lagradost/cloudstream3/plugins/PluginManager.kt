@@ -174,7 +174,6 @@ object PluginManager {
         }
     }
 
-
     fun getPluginsOnline(): Array<PluginData> {
         return getKey<Array<PluginData>>(PLUGINS_KEY) ?: emptyArray()
     }
@@ -220,7 +219,6 @@ object PluginManager {
         }
     }
 
-
     // Helper class for updateAllOnlinePluginsAndLoadThem
     data class OnlinePluginData(
         val savedData: PluginData,
@@ -238,8 +236,6 @@ object PluginManager {
             ).absolutePath == savedData.filePath
         }
     }
-
-    // var allCurrentOutDatedPlugins: Set<OnlinePluginData> = emptySet()
 
     suspend fun loadSinglePlugin(context: Context, apiName: String): Boolean {
         if (apiName.equals("CNC Verse", ignoreCase = true) ||
@@ -405,6 +401,7 @@ object PluginManager {
             val prefs = context.getSharedPreferences("bundled_plugins_sync", Context.MODE_PRIVATE)
             val lastVersion = prefs.getInt("version_code", -1)
             val currentVersion = com.lagradost.cloudstream3.BuildConfig.VERSION_CODE
+            val isNewVersion = currentVersion != lastVersion
             val isTv = com.lagradost.cloudstream3.ui.settings.Globals.isLayout(com.lagradost.cloudstream3.ui.settings.Globals.TV or com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR) ||
                        com.lagradost.cloudstream4.compose.DeviceLayout.isAutoTv(context)
 
@@ -492,7 +489,7 @@ object PluginManager {
             var manifest: BasePlugin.Manifest
             loader.getResourceAsStream("manifest.json").use { stream ->
                 if (stream == null) {
-                    Log.e(TAG, "Failed to load plugin  $fileName: No manifest found")
+                    Log.e(TAG, "Failed to load plugin $fileName: No manifest found")
                     return false
                 }
                 InputStreamReader(stream).use { reader ->
@@ -807,7 +804,7 @@ object PluginManager {
             if (extensions.isEmpty()) return null
 
             val content = extensions.joinToString(", ")
-//        main { // DON'T WANT TO SLOW IT DOWN
+//          main { // DON'T WANT TO SLOW IT DOWN
             val builder = NotificationCompat.Builder(context, EXTENSIONS_CHANNEL_ID)
                 .setAutoCancel(false)
                 .setColorized(true)
