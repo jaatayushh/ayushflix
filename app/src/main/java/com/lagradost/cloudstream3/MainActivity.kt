@@ -1501,12 +1501,23 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                 syncNetmirrorCookie(this@MainActivity)
                 APIHolder.initAll()
 
-                val defaultProvider = APIHolder.allProviders.firstOrNull { it.hasMainPage }?.name
-                    ?: APIHolder.allProviders.firstOrNull()?.name
-                    ?: "Netflix Mirror"
+                val isTv = com.lagradost.cloudstream3.ui.settings.Globals.isLayout(com.lagradost.cloudstream3.ui.settings.Globals.TV or com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR) ||
+                           com.lagradost.cloudstream4.compose.DeviceLayout.isAutoTv(this@MainActivity)
+
+                val defaultProvider = if (isTv) {
+                    APIHolder.allProviders.firstOrNull { it.name.equals("Netflix", ignoreCase = true) || it.name.equals("Netflix Mirror", ignoreCase = true) }?.name
+                        ?: APIHolder.allProviders.firstOrNull { it.hasMainPage }?.name
+                        ?: "Netflix Mirror"
+                } else {
+                    APIHolder.allProviders.firstOrNull { it.name.equals("NetflixM", ignoreCase = true) || it.name.equals("Netflixm", ignoreCase = true) }?.name
+                        ?: APIHolder.allProviders.firstOrNull { it.hasMainPage }?.name
+                        ?: "NetflixM"
+                }
 
                 if (DataStoreHelper.currentHomePage.isNullOrBlank() ||
                     DataStoreHelper.currentHomePage == "MovieBox" ||
+                    (!isTv && (DataStoreHelper.currentHomePage == "Netflix" || DataStoreHelper.currentHomePage == "Netflix Mirror")) ||
+                    (isTv && DataStoreHelper.currentHomePage?.equals("NetflixM", ignoreCase = true) == true) ||
                     APIHolder.allProviders.none { it.name == DataStoreHelper.currentHomePage }
                 ) {
                     DataStoreHelper.currentHomePage = defaultProvider

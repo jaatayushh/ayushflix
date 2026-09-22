@@ -68,8 +68,8 @@ minSdk = "23"
 compileSdk = "37"
 targetSdk = "36"
 
-versionCode = "80"
-versionName = "2.0.5"
+versionCode = "81"
+versionName = "2.0.6"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }

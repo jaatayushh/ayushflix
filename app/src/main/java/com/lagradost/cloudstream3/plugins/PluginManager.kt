@@ -243,13 +243,23 @@ object PluginManager {
 
     suspend fun loadSinglePlugin(context: Context, apiName: String): Boolean {
         if (apiName.equals("CNC Verse", ignoreCase = true) ||
+            apiName.equals("CNC Verse Mobile", ignoreCase = true) ||
+            apiName.equals("Netflix", ignoreCase = true) ||
+            apiName.equals("NetflixM", ignoreCase = true) ||
             apiName.equals("Netflix Mirror", ignoreCase = true) ||
+            apiName.equals("Prime Video", ignoreCase = true) ||
+            apiName.equals("PrimeVideoM", ignoreCase = true) ||
             apiName.equals("Prime Video Mirror", ignoreCase = true) ||
+            apiName.equals("Hotstar", ignoreCase = true) ||
+            apiName.equals("HotstarM", ignoreCase = true) ||
             apiName.equals("HotStar Mirror", ignoreCase = true) ||
+            apiName.equals("Disney", ignoreCase = true) ||
+            apiName.equals("DisneyM", ignoreCase = true) ||
             apiName.equals("Disney+ Mirror", ignoreCase = true) ||
             apiName.equals("Disney Studio", ignoreCase = true) ||
             apiName.equals("Castle Tv", ignoreCase = true) ||
             apiName.equals("Castle TV", ignoreCase = true) ||
+            apiName.equals("Castle TV (Use VLC)", ignoreCase = true) ||
             apiName.equals("CastleTvProvider", ignoreCase = true) ||
             apiName.equals("HDOProvider", ignoreCase = true) ||
             apiName.equals("StreamFlix", ignoreCase = true) ||
@@ -395,10 +405,23 @@ object PluginManager {
             val prefs = context.getSharedPreferences("bundled_plugins_sync", Context.MODE_PRIVATE)
             val lastVersion = prefs.getInt("version_code", -1)
             val currentVersion = com.lagradost.cloudstream3.BuildConfig.VERSION_CODE
-            val isNewVersion = (lastVersion != currentVersion)
+            val isTv = com.lagradost.cloudstream3.ui.settings.Globals.isLayout(com.lagradost.cloudstream3.ui.settings.Globals.TV or com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR) ||
+                       com.lagradost.cloudstream4.compose.DeviceLayout.isAutoTv(context)
+
+            if (!isTv) {
+                try { File(bundledDir, "CNC Verse.cs3").delete() } catch (_: Exception) {}
+            } else {
+                try { File(bundledDir, "CNC Verse Mobile.cs3").delete() } catch (_: Exception) {}
+            }
 
             for (assetPath in uniqueCandidates) {
                 val fileName = File(assetPath).name
+                if (isTv && fileName.contains("Mobile", ignoreCase = true)) {
+                    continue
+                }
+                if (!isTv && fileName.equals("CNC Verse.cs3", ignoreCase = true)) {
+                    continue
+                }
                 val outFile = File(bundledDir, fileName)
 
                 val shouldCopy = isNewVersion || !outFile.exists() || outFile.length() == 0L

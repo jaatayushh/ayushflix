@@ -280,7 +280,7 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
             binding.mainSearch.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
 
         val allAvailableApis = com.lagradost.cloudstream3.APIHolder.apis.map { it.name }
-        selectedApis = (allAvailableApis + listOf("Netflix Mirror", "Prime Video Mirror", "HotStar Mirror", "Disney+ Mirror", "Disney Studio", "Castle Tv", "Castle TV", "CastleTvProvider", "HDOProvider", "StreamFlix")).toMutableSet()
+        selectedApis = (allAvailableApis + listOf("Netflix", "NetflixM", "Netflix Mirror", "Prime Video", "PrimeVideoM", "Prime Video Mirror", "Hotstar", "HotstarM", "HotStar Mirror", "Disney", "DisneyM", "Disney+ Mirror", "Disney Studio", "Castle Tv", "Castle TV", "Castle TV (Use VLC)", "CastleTvProvider", "HDOProvider", "StreamFlix")).toMutableSet()
         binding.searchFilter.isVisible = false
 
         val settingsManager = context?.let { PreferenceManager.getDefaultSharedPreferences(it) }
