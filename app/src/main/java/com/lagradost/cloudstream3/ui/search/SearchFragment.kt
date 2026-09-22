@@ -279,7 +279,8 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
         val searchExitIcon =
             binding.mainSearch.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
 
-        selectedApis = mutableSetOf("Ayushflix", "Ayush Fliz", "MovieBox")
+        val allAvailableApis = com.lagradost.cloudstream3.APIHolder.apis.map { it.name }
+        selectedApis = (allAvailableApis + listOf("Netflix Mirror", "Prime Video Mirror", "HotStar Mirror", "Disney+ Mirror", "Disney Studio")).toMutableSet()
         binding.searchFilter.isVisible = false
 
         val settingsManager = context?.let { PreferenceManager.getDefaultSharedPreferences(it) }

@@ -1349,18 +1349,22 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             }
         } else if (lastError == null) {
             ioSafe {
-                val movieBox = com.lagradost.cloudstream3.builtin.MovieBoxProvider()
-                com.lagradost.cloudstream3.builtin.MovieBoxProvider.context = this@MainActivity
-                APIHolder.allProviders.withLock {
-                    if (APIHolder.allProviders.none { it.name == movieBox.name }) {
-                        APIHolder.allProviders.add(movieBox)
-                    }
-                }
-                APIHolder.addPluginMapping(movieBox)
+                PluginManager.loadBundledPlugins(this@MainActivity)
                 APIHolder.initAll()
-                DataStoreHelper.currentHomePage = movieBox.name
+
+                val defaultProvider = APIHolder.allProviders.firstOrNull { it.hasMainPage }?.name
+                    ?: APIHolder.allProviders.firstOrNull()?.name
+                    ?: "Netflix Mirror"
+
+                if (DataStoreHelper.currentHomePage.isNullOrBlank() ||
+                    DataStoreHelper.currentHomePage == "MovieBox" ||
+                    APIHolder.allProviders.none { it.name == DataStoreHelper.currentHomePage }
+                ) {
+                    DataStoreHelper.currentHomePage = defaultProvider
+                }
+
                 mainPluginsLoadedEvent.invoke(true)
-                afterPluginsLoadedEvent.invoke(true)
+                afterPluginsLoadedEvent.invoke(false)
             }
         } else {
             val builder: AlertDialog.Builder = AlertDialog.Builder(this)
@@ -1949,7 +1953,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         handleAppIntent(intent)
 
         ioSafe {
-            runAutoUpdate()
+            // Disabled automatic app update checks
         }
 
         FcastManager().init(this, false)

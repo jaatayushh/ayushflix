@@ -84,17 +84,7 @@ object InAppUpdater {
     )
 
     private suspend fun Activity.getAppUpdate(installPrerelease: Boolean): Update {
-        return try {
-            when {
-                // No updates on debug version
-                BuildConfig.DEBUG -> Update(false, null, null, null, null)
-                BuildConfig.FLAVOR == "prerelease" || installPrerelease -> getPreReleaseUpdate()
-                else -> getReleaseUpdate()
-            }
-        } catch (e: Exception) {
-            Log.e(LOG_TAG, Log.getStackTraceString(e))
-            Update(false, null, null, null, null)
-        }
+        return Update(false, null, null, null, null)
     }
 
     private suspend fun Activity.getReleaseUpdate(): Update {

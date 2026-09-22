@@ -242,7 +242,14 @@ object PluginManager {
     // var allCurrentOutDatedPlugins: Set<OnlinePluginData> = emptySet()
 
     suspend fun loadSinglePlugin(context: Context, apiName: String): Boolean {
-        if (apiName.equals("Ayushflix", ignoreCase = true) || apiName.equals("Ayush Fliz", ignoreCase = true) || apiName.equals("MovieBox", ignoreCase = true)) return true
+        if (apiName.equals("CNC Verse", ignoreCase = true) ||
+            apiName.equals("Netflix Mirror", ignoreCase = true) ||
+            apiName.equals("Prime Video Mirror", ignoreCase = true) ||
+            apiName.equals("HotStar Mirror", ignoreCase = true) ||
+            apiName.equals("Disney+ Mirror", ignoreCase = true) ||
+            apiName.equals("Disney Studio", ignoreCase = true) ||
+            apiName.equals("Ayushflix", ignoreCase = true) ||
+            apiName.equals("Ayush Fliz", ignoreCase = true)) return true
         return false
     }
 
@@ -353,10 +360,80 @@ object PluginManager {
         } ?: false
     }
 
+    suspend fun loadBundledPlugins(context: Context) {
+        try {
+            val pluginsDir = File(context.filesDir, ONLINE_PLUGINS_FOLDER)
+            if (!pluginsDir.exists()) pluginsDir.mkdirs()
+            val bundledDir = File(pluginsDir, "bundled")
+            if (!bundledDir.exists()) bundledDir.mkdirs()
+
+            val candidates = mutableListOf<String>()
+            try {
+                context.assets.list("plugins")?.forEach { name ->
+                    if (name.endsWith(".cs3", ignoreCase = true) || name.endsWith(".zip", ignoreCase = true)) {
+                        candidates.add("plugins/$name")
+                    }
+                }
+            } catch (_: Exception) {}
+
+            try {
+                context.assets.list("")?.forEach { name ->
+                    if (name.endsWith(".cs3", ignoreCase = true) || name.endsWith(".zip", ignoreCase = true)) {
+                        candidates.add(name)
+                    }
+                }
+            } catch (_: Exception) {}
+
+            for (assetPath in candidates.distinct()) {
+                val fileName = File(assetPath).name
+                val outFile = File(bundledDir, fileName)
+
+                var shouldCopy = !outFile.exists()
+                if (!shouldCopy) {
+                    try {
+                        val assetLength = context.assets.open(assetPath).use { it.available().toLong() }
+                        if (outFile.length() != assetLength) {
+                            shouldCopy = true
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                if (shouldCopy) {
+                    try {
+                        if (outFile.exists()) {
+                            outFile.setWritable(true)
+                            outFile.delete()
+                        }
+                        context.assets.open(assetPath).use { input ->
+                            outFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to copy bundled plugin $assetPath", e)
+                    }
+                }
+
+                if (outFile.exists()) {
+                    val pluginData = PluginData(
+                        internalName = outFile.nameWithoutExtension,
+                        url = null,
+                        isOnline = false,
+                        filePath = outFile.absolutePath,
+                        version = PLUGIN_VERSION_NOT_SET
+                    )
+                    loadPlugin(context, outFile, pluginData)
+                }
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to load bundled plugins", t)
+        }
+    }
+
     /**
      * @return True if successful, false if not
      * */
-    private suspend fun loadPlugin(context: Context, file: File, data: PluginData): Boolean {
+    suspend fun loadPlugin(context: Context, file: File, data: PluginData): Boolean {
         val fileName = file.nameWithoutExtension
         val filePath = file.absolutePath
         currentlyLoading = fileName

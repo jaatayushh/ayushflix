@@ -64,7 +64,7 @@ jobs:
           echo "Found APK: $APK_FILE"
           TAG="${{ github.ref_name }}"
           if [[ ! "$TAG" =~ ^v ]]; then
-            TAG="v2.0.2"
+            TAG="v2.0.3"
           fi
           ASSET_NAME="Ayushflix-${TAG}.apk"
           cp "$APK_FILE" "release_assets/${ASSET_NAME}"
@@ -88,11 +88,10 @@ jobs:
           body: |
             ## Ayushflix ${{ steps.prepare_asset.outputs.tag_name }}
 
-            - **4-Node Distributed API Load Balancing**: All home, search, metadata, and stream queries are distributed across 4 API keys in round-robin mode.
-            - **Full Subtitles Support**: Subtitles in English, Hindi, Arabic, Bengali, etc., are loaded directly from the Render API into the player.
-            - **Renamed Provider**: Official provider branded as `Ayush Flix`.
-            - **Zero-Downtime Fallback**: Automatic failover to upstream servers if needed.
-            - **Enhanced Player**: Dynamic speed controls, subtitle styling, and stream selection.
+            - **Embedded CNC Verse Extension**: Built-in, hardcoded extension bundle featuring Netflix Mirror, Prime Video Mirror, HotStar Mirror, and Disney Studios.
+            - **Removed Donation Popups**: Completely neutralized donation dialog triggers for a clean, uninterrupted streaming experience.
+            - **Cleaned Engine**: Completely removed old MovieBox provider and hardcoded API keys.
+            - **Autonomous Startup**: Automatically unpacks and registers providers on launch with zero extra configuration.
           files: ${{ steps.prepare_asset.outputs.asset_path }}
           draft: false
           prerelease: false

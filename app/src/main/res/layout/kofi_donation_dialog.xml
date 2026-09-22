@@ -33,7 +33,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hey there! 👋 Creating and maintaining our custom streaming engine, reverse-engineering the APIs, deploying our Singapore node, and keeping servers running 24/7 ad-free has taken immense effort and countless sleepless nights.\n\nIf you enjoy streaming on Ayushflix, please consider buying a coffee on Ko-fi to help keep the servers alive and free for everyone!"
+        android:text="Hey there! 👋 Creating and maintaining our custom streaming engine and keeping the app running 24/7 ad-free has taken immense effort and countless sleepless nights.\n\nIf you enjoy streaming on Ayushflix, please consider buying a coffee on Ko-fi to help keep the app alive and free for everyone!"
         android:textColor="?attr/textColor"
         android:alpha="0.85"
         android:lineSpacingExtra="4dp"

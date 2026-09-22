@@ -1,7 +1,7 @@
 {
   "name": "Ayushflix CloudStream Repository",
   "iconUrl": "https://raw.githubusercontent.com/jaatayushh/tempoflixayush/main/static/img/ayushflix-logo.png",
-  "description": "Official Ayushflix & MovieBox streaming extension repository for CloudStream 3 with 1080p FHD streams, multi-audio dubs, and zero ads.",
+  "description": "Official Ayushflix streaming extension repository for CloudStream 3 with 1080p FHD streams, multi-audio dubs, and zero ads.",
   "manifestVersion": 1,
   "pluginLists": [
     "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/plugins.json"
