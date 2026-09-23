@@ -3,13 +3,20 @@
     "name": "Ayushflix",
     "internalName": "Ayushflix",
     "pluginClassName": "com.ayushflix.AyushflixPlugin",
-    "version": 1,
+    "version": 2,
     "url": "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/Ayushflix.cs3",
     "fileSize": 275584,
     "status": 1,
-    "types": ["TvType.Movie", "TvType.TvSeries", "TvType.Anime", "TvType.AsianDrama"],
+    "types": [
+      "TvType.Movie",
+      "TvType.TvSeries",
+      "TvType.Anime",
+      "TvType.AsianDrama"
+    ],
     "iconUrl": "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/icon.png",
-    "authors": ["Ayush"],
+    "authors": [
+      "Ayush"
+    ],
     "description": "Unified all-in-one Ayushflix extension combining TV scrapers (Netflix, Prime Video, Hotstar, Disney), Mobile scrapers (NetflixM, PrimeVideoM, HotstarM, DisneyM), and Castle TV with Hindi default audio."
   }
 ]
