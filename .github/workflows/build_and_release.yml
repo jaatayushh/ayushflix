@@ -130,10 +130,24 @@ jobs:
         shell: pwsh
         run: |
           cd desktop
-          $sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } elseif (Test-Path "C:\Android\android-sdk") { "C:\Android\android-sdk" } else { "$env:LOCALAPPDATA\Android\Sdk" }
+          $sdk = if ($env:ANDROID_HOME -and (Test-Path $env:ANDROID_HOME)) {
+            $env:ANDROID_HOME
+          } elseif (Test-Path "C:\Android\android-sdk") {
+            "C:\Android\android-sdk"
+          } else {
+            "$env:LOCALAPPDATA\Android\Sdk"
+          }
           Write-Host "Using Android SDK at: $sdk"
-          "sdk.dir=$($sdk.Replace('\', '/'))" | Out-File -Encoding utf8 "local.properties"
-          ./gradlew.bat :desktop-app:createDistributable -PAPP_VERSION=1.0.0 --no-daemon --stacktrace
+          $env:ANDROID_HOME = $sdk
+          $env:ANDROID_SDK_ROOT = $sdk
+          $localPropContent = "sdk.dir=$($sdk.Replace('\', '/'))`r`n"
+          [System.IO.File]::WriteAllText("$pwd/local.properties", $localPropContent, [System.Text.Encoding]::ASCII)
+          [System.IO.File]::WriteAllText("$pwd/../local.properties", $localPropContent, [System.Text.Encoding]::ASCII)
+
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          if (-not $ver -or $ver -like "main*") { $ver = "1.0.0" }
+          Write-Host "Building desktop distributable with APP_VERSION=$ver"
+          ./gradlew.bat :desktop-app:createDistributable "-PAPP_VERSION=$ver" --no-daemon --stacktrace
 
       - name: Install Inno Setup
         run: choco install innosetup --yes
@@ -141,9 +155,28 @@ jobs:
       - name: Compile Windows Installer
         shell: pwsh
         run: |
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          $iscc = (Get-Command "ISCC.exe" -ErrorAction SilentlyContinue)?.Source
+          if (-not $iscc) {
+            $candidates = @(
+              "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+              "C:\Program Files\Inno Setup 6\ISCC.exe"
+            )
+            foreach ($cand in $candidates) {
+              if (Test-Path $cand) { $iscc = $cand; break }
+            }
+          }
+          if (-not $iscc) {
+            Write-Error "Inno Setup compiler (ISCC.exe) not found!"
+            exit 1
+          }
+          Write-Host "Using Inno Setup compiler: $iscc"
           cd desktop
           & $iscc "installer\setup.iss"
+          if (-not (Test-Path "desktop-app\build\outputs\Ayushflix-Setup.exe")) {
+            Write-Error "Installer binary Ayushflix-Setup.exe was not found in desktop-app/build/outputs!"
+            exit 1
+          }
+          Write-Host "Installer compiled successfully!"
 
       - name: Upload Desktop Installer Artifact
         uses: actions/upload-artifact@v4
