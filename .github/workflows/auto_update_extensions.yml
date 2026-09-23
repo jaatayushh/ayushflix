@@ -1,0 +1,91 @@
+name: Auto Update Ayushflix Extensions
+
+on:
+  schedule:
+    # Run automatically every day at 03:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force_bump:
+        description: 'Force version bump and rebuild'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  update-extension:
+    name: Sync Upstream Scrapers & Bump Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download Latest Upstream Scrapers
+        run: |
+          mkdir -p temp_sync
+          cd temp_sync
+          echo "Fetching latest builds from NivinCNC builds branch..."
+          curl -sL "https://raw.githubusercontent.com/NivinCNC/builds/master/plugins.json" -o upstream_plugins.json || true
+          
+          # Download CNC Verse TV and Mobile
+          curl -sL "https://raw.githubusercontent.com/NivinCNC/builds/master/CNC%20Verse.cs3" -o "CNC Verse.cs3" || true
+          curl -sL "https://raw.githubusercontent.com/NivinCNC/builds/master/CNC%20Verse%20Mobile.cs3" -o "CNC Verse Mobile.cs3" || true
+          curl -sL "https://raw.githubusercontent.com/NivinCNC/builds/master/CastleTvProvider.cs3" -o "CastleTvProvider.cs3" || true
+          cd ..
+
+      - name: Repackage Ayushflix.cs3 & Bump Version
+        id: bump
+        run: |
+          python3 - << 'EOF'
+          import json, os, zipfile, time
+
+          plugins_file = "plugins.json"
+          if os.path.exists(plugins_file):
+              with open(plugins_file, "r") as f:
+                  data = json.load(f)
+              current_ver = data[0].get("version", 1)
+              new_ver = current_ver + 1
+              data[0]["version"] = new_ver
+              
+              # Check if updated .cs3 files were downloaded
+              tv_cs3 = "temp_sync/CNC Verse.cs3"
+              if os.path.exists(tv_cs3) and os.path.getsize(tv_cs3) > 1000:
+                  os.replace(tv_cs3, "app/src/main/assets/plugins/CNC Verse.cs3")
+              mob_cs3 = "temp_sync/CNC Verse Mobile.cs3"
+              if os.path.exists(mob_cs3) and os.path.getsize(mob_cs3) > 1000:
+                  os.replace(mob_cs3, "app/src/main/assets/plugins/CNC Verse Mobile.cs3")
+              castle_cs3 = "temp_sync/CastleTvProvider.cs3"
+              if os.path.exists(castle_cs3) and os.path.getsize(castle_cs3) > 1000:
+                  os.replace(castle_cs3, "app/src/main/assets/plugins/CastleTvProvider.cs3")
+
+              # Update fileSize in plugins.json
+              if os.path.exists("Ayushflix.cs3"):
+                  data[0]["fileSize"] = os.path.getsize("Ayushflix.cs3")
+
+              with open(plugins_file, "w") as f:
+                  json.dump(data, f, indent=2)
+
+              print(f"Bumped version to {new_ver}")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as gh_out:
+                  gh_out.write(f"new_version={new_ver}\n")
+          EOF
+
+      - name: Commit & Push Changes
+        run: |
+          git config user.name "Ayushflix Bot"
+          git config user.email "bot@ayushflix.internal"
+          git add plugins.json repo.json app/src/main/assets/plugins/ || true
+          git commit -m "Auto-update extensions to version ${{ steps.bump.outputs.new_version }} [skip ci]" || echo "No changes to commit"
+          git push origin main || echo "Push skipped"

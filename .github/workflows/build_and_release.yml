@@ -95,10 +95,14 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
+          build-root-directory: desktop
 
       - name: Download libmpv-2.dll
         shell: pwsh
@@ -129,6 +133,9 @@ jobs:
         shell: pwsh
         run: |
           cd desktop
+          if ($env:ANDROID_HOME) {
+            "sdk.dir=$($env:ANDROID_HOME.Replace('\', '/'))" | Out-File -Encoding utf8 "local.properties"
+          }
           ./gradlew.bat :desktop-app:createDistributable -PAPP_VERSION=1.0.0 --no-daemon --stacktrace
 
       - name: Install Inno Setup
