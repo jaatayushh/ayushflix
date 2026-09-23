@@ -44,11 +44,12 @@ private fun extractBundledPlugins() {
     try {
         val extensionsDir = PlatformPaths.extensionsDir
         if (!extensionsDir.exists()) extensionsDir.mkdirs()
+        val legacy = listOf("CNC Verse.cs3", "CastleTvProvider.cs3", "CNC Verse Mobile.cs3", "HDOProvider.cs3", "StreamFlixProvider.cs3")
+        for (old in legacy) {
+            try { java.io.File(extensionsDir, old).delete() } catch (_: Exception) {}
+        }
         val bundled = listOf(
-            "CNC Verse.cs3",
-            "CastleTvProvider.cs3",
-            "Ayushflix.cs3",
-            "CNC Verse Mobile.cs3"
+            "Ayushflix.cs3"
         )
         for (pluginName in bundled) {
             val target = java.io.File(extensionsDir, pluginName)

@@ -257,8 +257,6 @@ object PluginManager {
             apiName.equals("Castle TV", ignoreCase = true) ||
             apiName.equals("Castle TV (Use VLC)", ignoreCase = true) ||
             apiName.equals("CastleTvProvider", ignoreCase = true) ||
-            apiName.equals("HDOProvider", ignoreCase = true) ||
-            apiName.equals("StreamFlix", ignoreCase = true) ||
             apiName.equals("Ayushflix", ignoreCase = true) ||
             apiName.equals("Ayush Fliz", ignoreCase = true)) return true
         return false
@@ -405,10 +403,11 @@ object PluginManager {
             val isTv = com.lagradost.cloudstream3.ui.settings.Globals.isLayout(com.lagradost.cloudstream3.ui.settings.Globals.TV or com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR) ||
                        com.lagradost.cloudstream4.compose.DeviceLayout.isAutoTv(context)
 
-            if (!isTv) {
-                try { File(bundledDir, "CNC Verse.cs3").delete() } catch (_: Exception) {}
-            } else {
-                try { File(bundledDir, "CNC Verse Mobile.cs3").delete() } catch (_: Exception) {}
+            // Clean up removed legacy individual plugin files
+            val legacyFiles = listOf("CNC Verse.cs3", "CNC Verse Mobile.cs3", "CastleTvProvider.cs3", "HDOProvider.cs3", "StreamFlixProvider.cs3")
+            for (legacy in legacyFiles) {
+                try { File(bundledDir, legacy).delete() } catch (_: Exception) {}
+                try { File(pluginsDir, legacy).delete() } catch (_: Exception) {}
             }
 
             for (assetPath in uniqueCandidates) {
