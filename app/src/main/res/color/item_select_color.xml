@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- For liquid glass pill: active icon = opaque white, inactive = frosted white -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:color="?attr/colorPrimary" android:state_checked="true"/>
-    <item android:color="?attr/colorPrimary" android:state_focused="true"/>
-    <item android:color="?attr/colorPrimary" android:state_selected="true"/>
-    <item android:color="?attr/textColor" android:state_checked="false"/>
+    <!-- Active/selected: bright white — stands out on glass -->
+    <item android:color="#FFFFFF" android:state_checked="true"/>
+    <item android:color="#FFFFFF" android:state_focused="true"/>
+    <item android:color="#FFFFFF" android:state_selected="true"/>
+    <!-- Inactive: clearly visible frosted silver/white -->
+    <item android:color="#B3FFFFFF"/>
 </selector>

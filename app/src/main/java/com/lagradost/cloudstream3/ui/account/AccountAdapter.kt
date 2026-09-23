@@ -20,7 +20,7 @@ import com.lagradost.cloudstream3.utils.DataStoreHelper
 import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
 
 class AccountAdapter(
-    private val accountSelectCallback: (DataStoreHelper.Account) -> Unit,
+    private val accountSelectCallback: (DataStoreHelper.Account, android.view.View) -> Unit,
     private val accountCreateCallback: (DataStoreHelper.Account) -> Unit,
     private val accountEditCallback: (DataStoreHelper.Account) -> Unit,
     private val accountDeleteCallback: (DataStoreHelper.Account) -> Unit
@@ -91,7 +91,7 @@ class AccountAdapter(
                 }
 
                 root.setOnClickListener {
-                    accountSelectCallback.invoke(item)
+                    accountSelectCallback.invoke(item, root)
                 }
             }
 

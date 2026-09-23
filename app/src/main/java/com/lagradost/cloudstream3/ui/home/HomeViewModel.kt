@@ -211,6 +211,7 @@ class HomeViewModel : ViewModel() {
 
     private var onGoingLoad: Job? = null
     private var isCurrentlyLoadingName: String? = null
+    private val attemptedFailovers = mutableSetOf<String>()
     private fun loadAndCancel(api: MainAPI) {
         //println("loaded ${api.name}")
         onGoingLoad?.cancel()
@@ -396,6 +397,14 @@ class HomeViewModel : ViewModel() {
                     } else {
                         _preview.postValue(Resource.Success((previewResponsesAdded.size < currentShuffledList.size) to previewResponses))
                     }
+                    if (expandable.isEmpty()) {
+                        val fallback = com.lagradost.cloudstream3.utils.ProviderRolloverManager.getFailoverApi(api.name)
+                        if (fallback != null && attemptedFailovers.add(fallback.name)) {
+                            DataStoreHelper.currentHomePage = fallback.name
+                            loadAndCancel(fallback)
+                            return@ioSafe
+                        }
+                    }
                     _page.postValue(Resource.Success(expandable))
                 } catch (e: Exception) {
                     _randomItems.postValue(emptyList())
@@ -404,6 +413,12 @@ class HomeViewModel : ViewModel() {
             }
 
             is Resource.Failure -> {
+                val fallback = com.lagradost.cloudstream3.utils.ProviderRolloverManager.getFailoverApi(api.name)
+                if (fallback != null && attemptedFailovers.add(fallback.name)) {
+                    DataStoreHelper.currentHomePage = fallback.name
+                    loadAndCancel(fallback)
+                    return@ioSafe
+                }
                 @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
                 _page.postValue(data!!)
                 @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
@@ -436,7 +451,13 @@ class HomeViewModel : ViewModel() {
     }
 
     private fun afterPluginsLoaded(forceReload: Boolean) {
-        loadAndCancel(DataStoreHelper.currentHomePage, forceReload)
+        val launchApi = com.lagradost.cloudstream3.utils.ProviderRolloverManager.getLaunchApi()
+        if (launchApi != null) {
+            DataStoreHelper.currentHomePage = launchApi.name
+            loadAndCancel(launchApi.name, forceReload)
+        } else {
+            loadAndCancel(DataStoreHelper.currentHomePage, forceReload)
+        }
     }
 
     private fun afterMainPluginsLoaded(unused: Boolean = false) {
@@ -504,6 +525,9 @@ class HomeViewModel : ViewModel() {
         fromUI: Boolean = false
     ) =
         ioSafe {
+            if (fromUI || forceReload) {
+                attemptedFailovers.clear()
+            }
             //println("trying to load $preferredApiName")
             // Since plugins are loaded in stages this function can get called multiple times.
             // The issue with this is that the homepage may be fetched multiple times while the first request is loading
@@ -534,8 +558,14 @@ class HomeViewModel : ViewModel() {
                 }
             } else if (api == null) {
                 // API is not found aka not loaded or removed, post the loading
-                // progress if waiting for plugins, otherwise nothing
+                // progress if waiting for plugins, otherwise attempt failover
                 if (PluginManager.loadedOnlinePlugins || PluginManager.isSafeMode()) {
+                    val fallback = com.lagradost.cloudstream3.utils.ProviderRolloverManager.getFailoverApi(preferredApiName)
+                    if (fallback != null && attemptedFailovers.add(fallback.name)) {
+                        DataStoreHelper.currentHomePage = fallback.name
+                        loadAndCancel(fallback)
+                        return@ioSafe
+                    }
                     loadAndCancel(noneApi)
                 } else {
                     _page.postValue(Resource.Loading())

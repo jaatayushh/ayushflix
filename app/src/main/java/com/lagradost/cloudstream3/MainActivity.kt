@@ -40,6 +40,8 @@ import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.core.view.marginStart
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
@@ -692,15 +694,22 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
              * highlight the wrong one in UI.
              */
             when (destination.id) {
+                R.id.navigation_home -> {
+                    navRailView.menu.findItem(R.id.navigation_home)?.isChecked = true
+                    navView.menu.findItem(R.id.navigation_home)?.isChecked = true
+                }
+                R.id.navigation_search -> {
+                    navRailView.menu.findItem(R.id.navigation_search)?.isChecked = true
+                    navView.menu.findItem(R.id.navigation_search)?.isChecked = true
+                }
                 in listOf(
                     R.id.navigation_downloads,
                     R.id.navigation_download_child,
                     R.id.navigation_download_queue
                 ) -> {
-                    navRailView.menu.findItem(R.id.navigation_downloads).isChecked = true
-                    navView.menu.findItem(R.id.navigation_downloads).isChecked = true
+                    navRailView.menu.findItem(R.id.navigation_downloads)?.isChecked = true
+                    navView.menu.findItem(R.id.navigation_downloads)?.isChecked = true
                 }
-
                 in listOf(
                     R.id.navigation_settings,
                     R.id.navigation_subtitles,
@@ -715,8 +724,8 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                     R.id.navigation_settings_plugins,
                     R.id.navigation_test_providers
                 ) -> {
-                    navRailView.menu.findItem(R.id.navigation_settings).isChecked = true
-                    navView.menu.findItem(R.id.navigation_settings).isChecked = true
+                    navRailView.menu.findItem(R.id.navigation_settings)?.isChecked = true
+                    navView.menu.findItem(R.id.navigation_settings)?.isChecked = true
                 }
             }
         }
@@ -1432,12 +1441,23 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         }
 
         binding?.apply {
-            fixSystemBarsPadding(
-                navView,
-                heightResId = R.dimen.nav_view_height,
-                padTop = false,
-                overlayCutout = false
-            )
+            ViewCompat.setOnApplyWindowInsetsListener(navView) { view, windowInsets ->
+                val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                val heightPx = 60.toPx
+                val marginStartPx = 20.toPx
+                val marginEndPx = 20.toPx
+                val marginBottomPx = 16.toPx + insets.bottom
+
+                (view.layoutParams as? ViewGroup.MarginLayoutParams)?.apply {
+                    height = heightPx
+                    bottomMargin = marginBottomPx
+                    leftMargin = marginStartPx
+                    rightMargin = marginEndPx
+                    view.layoutParams = this
+                }
+                view.setPadding(0, 0, 0, 0)
+                windowInsets
+            }
 
             fixSystemBarsPadding(
                 navRailView,
@@ -1832,8 +1852,8 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         val rippleColor = ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
         binding?.navView?.apply {
-            itemRippleColor = rippleColor
-            itemActiveIndicatorColor = rippleColor
+            itemRippleColor = ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+            itemActiveIndicatorColor = ColorStateList.valueOf(android.graphics.Color.parseColor("#33FFFFFF"))
             setupWithNavController(navController)
             setOnItemSelectedListener { item ->
                 onNavDestinationSelected(
@@ -1841,7 +1861,6 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                     navController
                 )
             }
-
         }
 
         binding?.navRailView?.apply {
@@ -2178,8 +2197,8 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         DownloadQueueManager.init(this)
 
         try {
-            com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.init()
-            com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.init()
+            com.lagradost.cloudstream3.utils.ProviderRolloverManager.advanceLaunchIndex()
+
             main {
                 kotlinx.coroutines.delay(600)
                 com.lagradost.cloudstream3.ui.kofi.KofiDialogHelper.checkAndShowOnHome(this@MainActivity)
@@ -2201,17 +2220,6 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.RC_SIGN_IN) {
-            com.lagradost.cloudstream3.syncproviders.firebase.FirebaseAuthManager.handleSignInResult(
-                intent = data,
-                onSuccess = { user ->
-                    showToast("Signed in as ${user.displayName ?: user.email ?: "Google User"}")
-                },
-                onError = { err ->
-                    showToast("Sign in error: $err")
-                }
-            )
-        }
     }
 
     suspend fun checkGithubConnectivity(): Boolean {

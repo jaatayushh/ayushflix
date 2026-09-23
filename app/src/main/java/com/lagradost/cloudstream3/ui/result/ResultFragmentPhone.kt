@@ -481,6 +481,20 @@ open class ResultFragmentPhone : BaseFragment<FragmentResultSwipeBinding>(
             }
         )
 
+        val topBarBg = binding.resultTopBar.background?.mutate()
+        binding.resultTopBar.background = topBarBg
+        resultBinding?.resultScroll?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, scrollY, _, _ ->
+            val maxScroll = 600f
+            val scrollRatio = (scrollY / maxScroll).coerceIn(0f, 1f)
+            
+            resultBinding?.resultPosterBackgroundHolder?.let { posterHolder ->
+                posterHolder.alpha = 1f - scrollRatio
+                posterHolder.translationY = scrollY * 0.5f
+            }
+            
+            topBarBg?.alpha = (scrollRatio * 255).toInt()
+        })
+
         // ===== ===== =====
 
         binding.resultSearch.isGone = storedData.name.isBlank()

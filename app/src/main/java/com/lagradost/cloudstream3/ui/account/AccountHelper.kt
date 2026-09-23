@@ -398,7 +398,7 @@ object AccountHelper {
 
         activity.observe(viewModel.accounts) { liveAccounts ->
             recyclerView.adapter = AccountAdapter(
-                accountSelectCallback = { account ->
+                accountSelectCallback = { account, _ ->
                     viewModel.handleAccountSelect(account, activity)
                     builder.dismissSafe()
                 },

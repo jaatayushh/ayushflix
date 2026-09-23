@@ -59,12 +59,14 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
             false
         )
 
-        // Sometimes we start this activity when we have already logged in
-        // For example when using cloudstreamsearch://
-        // In those cases we want to just go to the main activity instantly
-        if (hasLoggedIn && !isEditingFromMainActivity && !isFromMainActivity) {
-            navigateToMainActivity()
-            return
+        // Always show account selection on fresh launch.
+        // Only skip if this is an internal navigation (from MainActivity or editing).
+        if (hasLoggedIn && (isEditingFromMainActivity || isFromMainActivity)) {
+            // Coming from inside the app — only navigate directly if editing
+            if (!isEditingFromMainActivity && !isFromMainActivity) {
+                navigateToMainActivity()
+                return
+            }
         }
 
         loadThemes(this)
@@ -73,9 +75,12 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
         setNavigationBarColorCompat(R.attr.primaryBlackBackground)
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-        val skipStartup = settingsManager.getBoolean(
-            getString(R.string.skip_startup_account_select_key), false
-        ) || accounts.count() <= 1
+        // Only skip the selector when navigating internally from MainActivity
+        val skipStartup = (isFromMainActivity || isEditingFromMainActivity) && (
+            settingsManager.getBoolean(
+                getString(R.string.skip_startup_account_select_key), false
+            ) || accounts.count() <= 1
+        )
 
         fun askBiometricAuth() {
 
@@ -102,8 +107,8 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
         }
 
         // Don't show account selection if there is only
-        // one account that exists
-        if (!isFromMainActivity && !isEditingFromMainActivity && skipStartup) {
+        // one account that exists (only applies for internal navigation)
+        if (skipStartup) {
             val currentAccount = accounts.firstOrNull { it.keyIndex == selectedKeyIndex }
             if (currentAccount?.lockPin != null) {
                 CommonActivity.init(this)
@@ -135,8 +140,8 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
         observe(accountViewModel.accounts) { liveAccounts ->
             val adapter = AccountAdapter(
                 // Handle the selected account
-                accountSelectCallback = {
-                    accountViewModel.handleAccountSelect(it, this)
+                accountSelectCallback = { account, view ->
+                    attemptAccountSelect(account, view)
                 },
                 accountCreateCallback = { accountViewModel.handleAccountUpdate(it, this) },
                 accountEditCallback = {
@@ -174,7 +179,7 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
                     adapter.viewType = VIEW_TYPE_EDIT_ACCOUNT
                 } else {
                     binding.editAccountButton.setImageResource(R.drawable.ic_baseline_edit_24)
-                    binding.title.setText(R.string.select_an_account)
+                    binding.title.text = "Who's Watching?"
                     adapter.viewType = VIEW_TYPE_SELECT_ACCOUNT
                 }
 
@@ -220,5 +225,95 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
 
     override fun onAuthenticationError() {
         finish()
+    }
+
+    private fun attemptAccountSelect(account: com.lagradost.cloudstream3.utils.DataStoreHelper.Account, view: android.view.View) {
+        if (!account.lockPin.isNullOrEmpty()) {
+            val builder = androidx.appcompat.app.AlertDialog.Builder(this)
+            builder.setTitle("Profile Lock")
+            val input = android.widget.EditText(this)
+            input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            builder.setView(input)
+            builder.setPositiveButton("OK") { _, _ ->
+                if (input.text.toString() == account.lockPin) {
+                    animateAndSelectAccount(account, view)
+                } else {
+                    android.widget.Toast.makeText(this, "Incorrect PIN", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+            builder.show()
+        } else {
+            animateAndSelectAccount(account, view)
+        }
+    }
+
+    private fun animateAndSelectAccount(account: com.lagradost.cloudstream3.utils.DataStoreHelper.Account, view: android.view.View) {
+        val rootLayout = findViewById<android.view.ViewGroup>(android.R.id.content)
+        val location = IntArray(2)
+        view.getLocationInWindow(location)
+
+        val cloneView = android.widget.ImageView(this)
+        val image = account.image
+        if (image is com.lagradost.cloudstream3.utils.UiImage.Drawable) {
+            cloneView.setImageResource(image.resId)
+        } else if (image is com.lagradost.cloudstream3.utils.UiImage.Image) {
+            // com.lagradost.cloudstream3.utils.UIHelper.setImage(cloneView, image.url)
+        }
+        
+        val layoutParams = android.widget.FrameLayout.LayoutParams(view.width, view.height)
+        cloneView.layoutParams = layoutParams
+        cloneView.x = location[0].toFloat()
+        cloneView.y = location[1].toFloat()
+        
+        // Add card corner radius using an outline provider to make it match the original view
+        cloneView.outlineProvider = object : android.view.ViewOutlineProvider() {
+            override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, 16f * resources.displayMetrics.density)
+            }
+        }
+        cloneView.clipToOutline = true
+        cloneView.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+
+        rootLayout.addView(cloneView)
+        view.visibility = android.view.View.INVISIBLE
+
+        val centerX = rootLayout.width / 2f - view.width / 2f
+        val centerY = rootLayout.height / 2f - view.height / 2f
+
+        cloneView.animate()
+            .x(centerX)
+            .y(centerY)
+            .setDuration(500)
+            .withEndAction {
+                val progressBar = android.widget.ProgressBar(this)
+                val pbParams = android.widget.FrameLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                pbParams.leftMargin = rootLayout.width / 2 - 50
+                pbParams.topMargin = (centerY + view.height + 40).toInt()
+                progressBar.layoutParams = pbParams
+                rootLayout.addView(progressBar)
+
+                cloneView.postDelayed({
+                    val targetX = rootLayout.width.toFloat() - view.width
+                    val targetY = rootLayout.height.toFloat() - view.height
+                    
+                    progressBar.visibility = android.view.View.GONE
+                    
+                    cloneView.animate()
+                        .x(targetX)
+                        .y(targetY)
+                        .scaleX(0.2f)
+                        .scaleY(0.2f)
+                        .setDuration(500)
+                        .withEndAction {
+                            accountViewModel.handleAccountSelect(account, this)
+                        }
+                        .start()
+                }, 1500)
+            }
+            .start()
     }
 }

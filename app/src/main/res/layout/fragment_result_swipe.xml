@@ -8,7 +8,7 @@
 
     <FrameLayout
             android:id="@+id/result_top_bar"
-            android:background="?attr/primaryGrayBackground"
+            android:background="?attr/primaryBlackBackground"
             android:paddingStart="@dimen/result_padding"
             android:paddingEnd="@dimen/result_padding"
             android:layout_width="match_parent"

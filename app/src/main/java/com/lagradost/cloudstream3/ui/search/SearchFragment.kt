@@ -227,6 +227,18 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
         // Fix grid
         currentSpan = view.context.getSpanCount()
         binding?.searchAutofitResults?.spanCount = currentSpan
+        (binding?.searchAutofitResults?.layoutManager as? GridLayoutManager)?.let { glm ->
+            glm.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    val ad = binding?.searchAutofitResults?.adapter as? SearchAdapter
+                    return if (ad != null && ad.headers > 0 && position == 0) {
+                        glm.spanCount
+                    } else {
+                        1
+                    }
+                }
+            }
+        }
         HomeFragment.configEvent.invoke()
     }
 
@@ -247,6 +259,18 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
                 "tv_no_focus_tag"
             searchAutofitResults.setRecycledViewPool(SearchAdapter.sharedPool)
             searchAutofitResults.adapter = adapter
+            (searchAutofitResults.layoutManager as? GridLayoutManager)?.let { glm ->
+                glm.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                    override fun getSpanSize(position: Int): Int {
+                        val ad = searchAutofitResults.adapter as? SearchAdapter
+                        return if (ad != null && ad.headers > 0 && position == 0) {
+                            glm.spanCount
+                        } else {
+                            1
+                        }
+                    }
+                }
+            }
             searchLoadingBar.alpha = 0f
         }
 
@@ -323,6 +347,8 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
                     searchViewModel.clearSearch()
                     searchViewModel.updateHistory()
                     searchViewModel.clearSuggestions()
+                    // Clear top match header when query is cleared
+                    (binding.searchAutofitResults.adapter as? SearchAdapter)?.setTopMatch(null)
                 } else {
                     // Fetch suggestions when user is typing (if enabled)
                     if (isSearchSuggestionsEnabled) {
@@ -347,9 +373,10 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
                     it.value.let { data ->
                         val list = data.list
                         if (list.isNotEmpty()) {
-                            (binding.searchAutofitResults.adapter as? SearchAdapter)?.submitList(
-                                list
-                            )
+                            val adapter = binding.searchAutofitResults.adapter as? SearchAdapter
+                            adapter?.setTopMatch(list.firstOrNull())
+                            val remaining = if (list.size > 1) list.drop(1) else emptyList()
+                            adapter?.submitList(remaining)
                         }
                     }
                     searchExitIcon?.alpha = 1f

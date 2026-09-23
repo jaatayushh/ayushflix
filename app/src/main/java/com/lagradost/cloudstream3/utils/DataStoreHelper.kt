@@ -86,10 +86,10 @@ class UserPreferenceDelegate<T : Any>(
 object DataStoreHelper {
     // be aware, don't change the index of these as Account uses the index for the art
     val profileImages = arrayOf(
-        R.drawable.profile_bg_dark_blue,
-        R.drawable.profile_bg_blue,
-        R.drawable.profile_bg_orange,
-        R.drawable.profile_bg_pink,
+        R.drawable.avatar_1,
+        R.drawable.avatar_2,
+        R.drawable.avatar_3,
+        R.drawable.avatar_4,
         R.drawable.profile_bg_purple,
         R.drawable.profile_bg_red,
         R.drawable.profile_bg_teal,
@@ -586,17 +586,6 @@ object DataStoreHelper {
         try {
             val targetId = episodeId ?: parentId
             val posDur = getViewPos(targetId)
-            if (posDur != null) {
-                com.lagradost.cloudstream3.syncproviders.firebase.FirebaseSyncManager.pushProgress(
-                    parentId = parentId,
-                    episodeId = episodeId,
-                    episode = episode,
-                    season = season,
-                    position = posDur.position,
-                    duration = posDur.duration,
-                    updateTime = updateTime
-                )
-            }
         } catch (_: Throwable) {}
     }
 

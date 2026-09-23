@@ -2,6 +2,8 @@ package com.lagradost.cloudstream3.ui.home
 
 import android.content.Context
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
@@ -320,6 +322,8 @@ class HomeParentItemAdapterPreview(
         private val bookmarkHolder: View = itemView.findViewById(R.id.home_bookmarked_holder)
         private val bookmarkRecyclerView: RecyclerView =
             itemView.findViewById(R.id.home_bookmarked_child_recyclerview)
+        
+
 
         private val headProfilePic: ImageView? = itemView.findViewById(R.id.home_head_profile_pic)
         private val headProfilePicCard: View? =
@@ -421,6 +425,15 @@ class HomeParentItemAdapterPreview(
                     )
                 }
 
+                val hasHistory = com.lagradost.cloudstream3.utils.DataStoreHelper.getLastWatched(item.getId()) != null
+                if (hasHistory) {
+                    homePreviewPlay.text = "Resume"
+                } else if (item.type == com.lagradost.cloudstream3.TvType.TvSeries || item.type == com.lagradost.cloudstream3.TvType.Anime) {
+                    homePreviewPlay.text = "Play S1 E1"
+                } else {
+                    homePreviewPlay.text = "Play Movie"
+                }
+
                 homePreviewInfo.setOnClickListener { view ->
                     viewModel.click(
                         LoadClickCallback(0, view, position, item)
@@ -490,8 +503,22 @@ class HomeParentItemAdapterPreview(
                 }
             }
 
+        // Auto-slide every 10 seconds
+        private val slideHandler = Handler(Looper.getMainLooper())
+        private val slideRunnable: Runnable = object : Runnable {
+            override fun run() {
+                val count = previewAdapter.itemCount
+                if (count > 1) {
+                    val next = (previewViewpager.currentItem + 1) % count
+                    previewViewpager.setCurrentItem(next, true)
+                }
+                slideHandler.postDelayed(this, 10_000L)
+            }
+        }
+
         fun onViewDetachedFromWindow() {
             previewViewpager.unregisterOnPageChangeCallback(previewCallback)
+            slideHandler.removeCallbacks(slideRunnable)
         }
 
         private val toggleList = listOf<Pair<Chip, WatchType>>(
@@ -772,6 +799,9 @@ class HomeParentItemAdapterPreview(
 
         fun onViewAttachedToWindow() {
             previewViewpager.registerOnPageChangeCallback(previewCallback)
+            // Start auto-sliding every 10 seconds
+            slideHandler.removeCallbacks(slideRunnable)
+            slideHandler.postDelayed(slideRunnable, 10_000L)
 
             previewViewpager.apply {
                 observe(viewModel.preview) {
