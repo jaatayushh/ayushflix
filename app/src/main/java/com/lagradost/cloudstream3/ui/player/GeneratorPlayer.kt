@@ -1144,7 +1144,8 @@ class GeneratorPlayer : FullScreenPlayer() {
 
                         sourcesArrayAdapter.addAll(filteredLinks.map { displayLink ->
                             val (link, uri) = displayLink.link
-                            val name = link?.name ?: uri?.name ?: "NULL"
+                            val rawName = link?.name ?: uri?.name ?: "NULL"
+                            val name = com.lagradost.cloudstream3.utils.AyushflixSourceFormatter.formatSourceName(rawName)
                             "$name ${Qualities.getStringByInt(link?.quality)}"
                         })
 
@@ -1949,7 +1950,8 @@ class GeneratorPlayer : FullScreenPlayer() {
 
     fun setPlayerDimen(widthHeight: Pair<Int, Int>?) {
         val resolution = widthHeight?.let { "${it.first}x${it.second}" }
-        val name = currentSelectedLink?.first?.name ?: currentSelectedLink?.second?.name
+        val rawName = currentSelectedLink?.first?.name ?: currentSelectedLink?.second?.name
+        val name = rawName?.let { com.lagradost.cloudstream3.utils.AyushflixSourceFormatter.formatSourceName(it) }
         val title = getHeaderName()
 
         val result = listOfNotNull(

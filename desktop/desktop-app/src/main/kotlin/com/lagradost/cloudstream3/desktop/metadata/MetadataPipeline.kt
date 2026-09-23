@@ -1,0 +1,322 @@
+package com.lagradost.cloudstream3.desktop.metadata
+
+import com.lagradost.cloudstream3.LoadResponse
+import com.lagradost.cloudstream3.desktop.metadata.providers.AniListMetadataProvider
+import com.lagradost.cloudstream3.desktop.metadata.providers.CinemetaMetadataProvider
+import com.lagradost.cloudstream3.desktop.metadata.providers.KitsuMetadataProvider
+import com.lagradost.cloudstream3.desktop.metadata.providers.TmdbMetadataProvider
+import com.lagradost.cloudstream3.desktop.metadata.providers.TvMazeMetadataProvider
+import com.lagradost.cloudstream3.desktop.repo.HeroCache
+import com.lagradost.cloudstream3.desktop.repo.HeroMeta
+import com.lagradost.cloudstream3.desktop.utils.TitleUtils
+import com.lagradost.common.logging.AppLogger
+import com.lagradost.common.storage.DesktopDataStore
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+
+/**
+ * Orchestrator that coordinates metadata resolution, progressive enrichment,
+ * and background caching across all registered [MetadataProvider] instances.
+ */
+object MetadataPipeline {
+    private const val TAG = "MetadataPipeline"
+
+    private val identityCache = ConcurrentHashMap<String, MetadataMatch>()
+    private val inFlightResolutions = ConcurrentHashMap<String, kotlinx.coroutines.CompletableDeferred<MetadataMatch?>>()
+
+    private val providers = mutableListOf<MetadataProvider>(
+        TmdbMetadataProvider,
+        TvMazeMetadataProvider,
+        AniListMetadataProvider,
+        KitsuMetadataProvider,
+        CinemetaMetadataProvider,
+    )
+
+    /**
+     * Registers an additional metadata provider into the pipeline.
+     */
+    fun registerProvider(provider: MetadataProvider) {
+        synchronized(providers) {
+            if (providers.none { it.id == provider.id }) {
+                providers.add(provider)
+            }
+        }
+    }
+
+    /**
+     * Unregisters a metadata provider by ID.
+     */
+    fun unregisterProvider(id: String) {
+        synchronized(providers) {
+            providers.removeAll { it.id == id }
+        }
+    }
+
+    /**
+     * Clears cached identity matches. If [title] is provided, only matches for that title are evicted.
+     */
+    fun clearCache(title: String? = null) {
+        if (title.isNullOrBlank()) {
+            identityCache.clear()
+            inFlightResolutions.clear()
+            AppLogger.d(TAG, "Cleared entire metadata identity cache")
+        } else {
+            val keyPrefix = title.lowercase().trim()
+            var count = 0
+            val it = identityCache.keys.iterator()
+            while (it.hasNext()) {
+                val key = it.next()
+                if (key.startsWith(keyPrefix)) {
+                    it.remove()
+                    inFlightResolutions.remove(key)
+                    count++
+                }
+            }
+            AppLogger.d(TAG, "Evicted $count cache entries for '$title'")
+        }
+    }
+
+    /**
+     * Executes the full metadata enrichment lifecycle for the given [loaded] response.
+     */
+    suspend fun enrich(
+        loaded: LoadResponse,
+        url: String,
+        fetchCast: Boolean = true,
+        callbacks: MetadataEnrichmentCallbacks = MetadataEnrichmentCallbacks(),
+    ) {
+        withContext(Dispatchers.IO) {
+            val isDummy = url.startsWith("dummy_")
+            val urlClean = url.removePrefix("dummy_")
+
+            // 1. Season adjustment from title if all episodes default to null or 1
+            val titleSeason = Regex("""(?i)\b(?:season|series)\b\s*(\d+)""").find(loaded.name)?.groupValues?.get(1)?.toIntOrNull()
+                ?: Regex("""(?i)\bs(\d{1,2})\b""").find(loaded.name)?.groupValues?.get(1)?.toIntOrNull()
+                ?: Regex("""(?i)\bs(\d{1,2})e\d+""").find(loaded.name)?.groupValues?.get(1)?.toIntOrNull()
+
+            val allEpisodes = when (loaded) {
+                is com.lagradost.cloudstream3.TvSeriesLoadResponse -> loaded.episodes
+                is com.lagradost.cloudstream3.AnimeLoadResponse -> loaded.episodes.values.flatten()
+                else -> emptyList()
+            }
+            val hasMultipleSeasons = allEpisodes.mapNotNull { it.season }.distinct().size > 1
+            if (titleSeason != null && titleSeason > 1 && !hasMultipleSeasons) {
+                allEpisodes.forEach { ep -> ep.season = titleSeason }
+            }
+
+            val (cleanName, titleYear) = TitleUtils.cleanProviderTitle(loaded.name)
+            if (loaded.year == null && titleYear != null) {
+                loaded.year = titleYear
+            }
+
+            // 2. Extract year from URL slug if available and not title prefix
+            if (loaded.year == null) {
+                try {
+                    val pathSegment = urlClean.substringBefore("?").split("/").lastOrNull { it.isNotBlank() }
+                    if (pathSegment != null) {
+                        val yearMatches = Regex("""\b(19\d{2}|20\d{2})\b""").findAll(pathSegment).map { it.range.first to it.groupValues[1].toInt() }.toList()
+                        val parsedYear = yearMatches.firstOrNull { (pos, _) ->
+                            !(pos <= 2 && Regex("""^\d{4}\b""").containsMatchIn(cleanName))
+                        }?.second
+                        if (parsedYear != null) {
+                            loaded.year = parsedYear
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // Ground-Truth Type Disambiguation: If loaded has multiple episodes, series response, or season/series tokens, enforce TvSeries
+            val hasSeriesPattern = Regex("""(?i)\b(?:season|series|s\d{1,2}|episodes?|complete|all-episodes|web-series|tv-series)\b""").containsMatchIn(loaded.name)
+                || Regex("""(?i)\b(?:season|series|s\d{1,2}|episodes?|all-episodes|web-series|tv-series)\b""").containsMatchIn(urlClean)
+            val isMovie = loaded.type == com.lagradost.cloudstream3.TvType.Movie || loaded.type == com.lagradost.cloudstream3.TvType.AnimeMovie
+            if (isMovie && (loaded is com.lagradost.cloudstream3.TvSeriesLoadResponse || allEpisodes.size > 1 || titleSeason != null || hasSeriesPattern)) {
+                loaded.type = if (loaded.type == com.lagradost.cloudstream3.TvType.AnimeMovie) com.lagradost.cloudstream3.TvType.Anime else com.lagradost.cloudstream3.TvType.TvSeries
+            }
+
+            // Direct Scraper Ground-Truth ID Extraction (Fast-Path)
+            val directImdbId = loaded.syncData["imdb"]?.takeIf { it.startsWith("tt") && it != "tt0000000" }
+                ?: loaded.syncData.values.firstNotNullOfOrNull { raw ->
+                    Regex("""\b(tt\d{6,10})\b""").find(raw)?.groupValues?.get(1)?.takeIf { it != "tt0000000" }
+                }
+                ?: Regex("""\b(tt\d{6,10})\b""").find(urlClean)?.groupValues?.get(1)?.takeIf { it != "tt0000000" }
+                ?: Regex("""\b(tt\d{6,10})\b""").find(loaded.url)?.groupValues?.get(1)?.takeIf { it != "tt0000000" }
+
+            val directTmdbId = loaded.syncData["tmdb"]?.toIntOrNull()?.takeIf { it > 0 }
+                ?: Regex("""themoviedb\.org/(?:movie|tv)/(\d+)""").find(urlClean)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
+                ?: Regex("""themoviedb\.org/(?:movie|tv)/(\d+)""").find(loaded.url)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
+
+            AppLogger.i(TAG, "▶ START pipeline | raw='${loaded.name}' | clean='$cleanName' | year=${loaded.year} | type=${loaded.type} | directImdb=$directImdbId | directTmdb=$directTmdbId")
+
+            val isAnime = loaded is com.lagradost.cloudstream3.AnimeLoadResponse ||
+                loaded.type == com.lagradost.cloudstream3.TvType.Anime ||
+                loaded.type == com.lagradost.cloudstream3.TvType.AnimeMovie ||
+                loaded.type == com.lagradost.cloudstream3.TvType.OVA ||
+                loaded.tags?.any { it.contains("anime", ignoreCase = true) || it.contains("animation", ignoreCase = true) } == true
+
+            val currentProviders = synchronized(providers) { providers.toList() }
+            val supportedProviders = currentProviders.filter { provider ->
+                if (!MetadataConfig.isProviderEnabled(provider.id)) return@filter false
+                provider.supportedTypes.contains(loaded.type) || (isAnime && (provider.id == "anilist" || provider.id == "kitsu"))
+            }
+            val sortedResolvers = supportedProviders.sortedWith(
+                compareBy(
+                    {
+                        if (isAnime) {
+                            val primary = MetadataConfig.animePrimaryProvider.value
+                            if (it.id == primary) 0 else if (it.id == "anilist" || it.id == "kitsu") 1 else 2
+                        } else {
+                            if (it.id == "cinemeta") 0 else 1
+                        }
+                    },
+                    { it.priority },
+                )
+            )
+
+            // 3. Resolve Media Identity (Stage 1 Resolvers with Canonical Identity Caching)
+            val identityKey = "${cleanName.lowercase().trim()}_${loaded.year}_${loaded.type}"
+            var activeMatch: MetadataMatch? = identityCache[identityKey]
+
+            if (activeMatch == null) {
+                var isInitiator = false
+                val deferred = inFlightResolutions.computeIfAbsent(identityKey) {
+                    isInitiator = true
+                    kotlinx.coroutines.CompletableDeferred()
+                }
+
+                if (isInitiator) {
+                    try {
+                        val resolved = coroutineScope {
+                            // Execute resolvers in parallel for maximum speed
+                            val asyncList = sortedResolvers.map { resolver ->
+                                resolver to async(Dispatchers.IO) {
+                                    try {
+                                        resolver.resolve(loaded.name, loaded.year, loaded.type, urlClean)
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        AppLogger.w(TAG, "Resolver ${resolver.id} failed for '$cleanName'", e)
+                                        null
+                                    }
+                                }
+                            }
+
+                            // Choose the highest priority resolved match in order
+                            var bestMatch: MetadataMatch? = null
+                            for ((resolver, asyncJob) in asyncList) {
+                                val match = asyncJob.await()
+                                if (match != null && bestMatch == null) {
+                                    bestMatch = match
+                                    AppLogger.i(TAG, "✓ Stage 1 Identity Resolved by ${resolver.id} -> '${match.matchedTitle}' (${match.matchedYear})")
+                                }
+                            }
+                            bestMatch
+                        }
+
+                        if (resolved != null) {
+                            identityCache[identityKey] = resolved
+                        }
+                        deferred.complete(resolved)
+                    } catch (e: Throwable) {
+                        deferred.completeExceptionally(e)
+                        throw e
+                    } finally {
+                        inFlightResolutions.remove(identityKey)
+                    }
+                }
+
+                activeMatch = try {
+                    deferred.await()
+                } catch (_: Exception) {
+                    null
+                }
+            } else {
+                AppLogger.i(TAG, "✓ Reusing cached match for '$cleanName' (IMDb: ${activeMatch.imdbId}, TMDB: ${activeMatch.tmdbId})")
+            }
+
+            // 4. Progressive Enrichment (Stage 1 -> Stage 2+ Concurrent Execution)
+            val context = MetadataEnrichmentContext(
+                rawUrl = if (isDummy) "dummy_$urlClean" else urlClean,
+                isDummy = isDummy,
+                fetchCast = fetchCast,
+                directImdbId = activeMatch?.imdbId ?: directImdbId,
+                directTmdbId = activeMatch?.tmdbId ?: directTmdbId,
+            )
+
+            val sortedEnrichers = supportedProviders.sortedWith(
+                compareBy(
+                    {
+                        if (isAnime) {
+                            val primary = MetadataConfig.animePrimaryProvider.value
+                            if (it.id == primary) 0 else if (it.id == "anilist" || it.id == "kitsu") 1 else 2
+                        } else {
+                            if (it.id == "tmdb") 0 else 1
+                        }
+                    },
+                    { it.priority },
+                )
+            )
+
+            // Run enrichers in parallel so total time = max(provider time) instead of sum(provider time)
+            coroutineScope {
+                val enrichJobs = sortedEnrichers.map { enricher ->
+                    async(Dispatchers.IO) {
+                        try {
+                            enricher.enrich(loaded, activeMatch, context, callbacks)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            AppLogger.e(TAG, "Enricher ${enricher.id} failed", e)
+                        }
+                    }
+                }
+                enrichJobs.forEach { it.await() }
+            }
+
+            // 5. Store high-res metadata into Hero cache
+            val heroTitle = loaded.name.takeIf { it.isNotBlank() }
+            val heroBackdrop = loaded.backgroundPosterUrl?.takeIf { it.isNotBlank() }
+            val heroLogo = loaded.logoUrl?.takeIf { it.isNotBlank() }
+            val heroTags = loaded.tags?.take(4) ?: emptyList()
+            val heroPlot = loaded.plot?.take(200)
+            val heroScore = loaded.score?.toString()
+
+            val heroMeta = HeroMeta(
+                title = heroTitle,
+                backdropUrl = heroBackdrop,
+                logoUrl = heroLogo,
+                tags = heroTags,
+                plot = heroPlot,
+                score = heroScore,
+                year = loaded.year,
+                type = loaded.type,
+                contentRating = loaded.contentRating,
+                duration = loaded.duration,
+            )
+            val cacheKey = "${loaded.apiName}_$urlClean"
+            DesktopDataStore.setKey("herometa_$cacheKey", heroMeta)
+            HeroCache.put(cacheKey, heroMeta)
+
+            callbacks.onEnrichmentComplete()
+            AppLogger.i(TAG, "✓ Pipeline completed successfully for '${loaded.name}'")
+        }
+    }
+
+    /**
+     * Attempts to retrieve a verified IMDb ID from the in-memory identity cache.
+     */
+    fun getCachedImdbId(showName: String?): String? {
+        if (showName.isNullOrBlank()) return null
+        val (cleanName, _) = TitleUtils.cleanProviderTitle(showName)
+        val cleanLower = cleanName.lowercase().trim()
+        return identityCache.values.firstOrNull { match ->
+            match.imdbId?.startsWith("tt", ignoreCase = true) == true &&
+                (match.matchedTitle.equals(cleanName, ignoreCase = true) || match.matchedTitle.lowercase().trim() == cleanLower)
+        }?.imdbId
+    }
+}

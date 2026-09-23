@@ -1,0 +1,151 @@
+package com.lagradost.cloudstream3.desktop.ui.screens.details.contract
+
+import androidx.compose.runtime.Immutable
+import com.lagradost.cloudstream3.ActorData
+import com.lagradost.cloudstream3.LoadResponse
+import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.SearchResponse
+import com.lagradost.cloudstream3.desktop.ui.base.UiState
+import com.lagradost.common.storage.DesktopBookmark
+import com.lagradost.common.storage.WatchHistory
+
+@Immutable
+sealed interface EnrichmentPhase {
+    data object Idle : EnrichmentPhase
+    data object InProgress : EnrichmentPhase
+    data object Complete : EnrichmentPhase
+}
+
+@Immutable
+data class SeasonMetadata(
+    val seasonNumber: Int,
+    val name: String,
+    val episodeCount: Int?,
+    val posterUrl: String?,
+)
+
+@Immutable
+data class ReviewData(
+    val author: String,
+    val content: String,
+    val rating: Double?,
+    val avatarUrl: String?,
+    val createdAt: String?,
+    val url: String?,
+)
+
+@Immutable
+data class DetailsUiState(
+    val preloadedName: String? = null,
+    val response: LoadResponse? = null,
+    val fakeData: LoadResponse? = null,
+    val isLoading: Boolean = true,
+    val fetchFailed: Boolean = false,
+    val watchHistory: Map<String, WatchHistory> = emptyMap(),
+    val activeLinkData: Triple<MainAPI, String, WatchHistory>? = null,
+    val isPanelOpen: Boolean = false,
+    val screenshots: List<String>? = null,
+    val enrichmentPhase: EnrichmentPhase = EnrichmentPhase.Idle,
+    val enrichedLogoUrl: String? = null,
+    val enrichedBackdropUrl: String? = null,
+    val enrichedTagline: String? = null,
+    val enrichedStatus: String? = null,
+    val enrichedStudios: List<String> = emptyList(),
+    val enrichedProductionCompanies: List<ProductionCompany> = emptyList(),
+    val enrichedNetworksList: List<ProductionCompany> = emptyList(),
+    val enrichedCollectionName: String? = null,
+    val enrichedCollectionBackdrop: String? = null,
+    val enrichedSeasonsCount: Int? = null,
+    val enrichedEpisodesCount: Int? = null,
+    val enrichedSeasonsMetadata: List<SeasonMetadata> = emptyList(),
+    val enrichedOriginalLanguage: String? = null,
+    val enrichedReleaseDate: String? = null,
+    val enrichedCountry: String? = null,
+    val enrichedCollectionItems: List<SearchResponse> = emptyList(),
+    val isEnriching: Boolean = false,
+    val error: String? = null,
+    val enrichedBudget: Long? = null,
+    val enrichedRevenue: Long? = null,
+    val enrichedNetworks: List<String> = emptyList(),
+    val enrichedYear: Int? = null,
+    val enrichedDuration: Int? = null,
+    val enrichedTags: List<String>? = null,
+    val enrichedActors: List<ActorData>? = null,
+    val enrichedImdbRating: Double? = null,
+    val enrichedTmdbRating: Double? = null,
+    val enrichedAniListRating: Double? = null,
+    val enrichedReviews: List<ReviewData> = emptyList(),
+    val enrichedTrailers: List<TrailerData> = emptyList(),
+    val enrichedTrailerUrl: String? = null,
+    val bookmarks: Map<String, DesktopBookmark> = emptyMap(),
+    val autoPlayEnabled: Boolean = true,
+    val hasAutoPlayed: Boolean = false,
+    val isInitialized: Boolean = false,
+    val backupSeasonHistory: Map<String, WatchHistory> = emptyMap(),
+    val isEpisodesStackedView: Boolean = false,
+    val episodeViewMode: Int = 0,
+    // Bumped each time episode thumbnail URLs are mutated in-place by enrichment.
+    // Compose observes this to trigger recomposition of episode cards.
+    val episodeThumbnailVersion: Int = 0,
+    val tmdbId: Int? = null,
+    val selectedSeason: Int? = null,
+    val seasonCredits: Map<Int, List<ActorData>> = emptyMap(),
+    val playbackError: String? = null,
+    val activeTrailer: TrailerData? = null,
+    val pendingExternalUrl: String? = null,
+) : UiState
+
+data class ProductionCompany(
+    val id: Int = 0,
+    val name: String,
+    val logoUrl: String? = null,
+    val originCountry: String? = null,
+)
+
+enum class DetailsSectionKey(val displayName: String, val description: String) {
+    EPISODES("Episodes & Content", "Episode grid, season selector, and watch progress"),
+    CAST("Cast & Crew", "Actors, characters, directors, and creators"),
+    TRAILERS("Videos & Trailers", "Categorized trailers, teasers, and clips"),
+    SCREENSHOTS("Screenshots Gallery", "High-resolution production backdrops"),
+    COLLECTION("Franchise Collection", "Franchise sequels, prequels, and sagas"),
+    RECOMMENDATIONS("Similar Content", "Recommendations and similar media"),
+    INFO("Details & Technical Info", "Release date, runtime, status, certification, budget, and language"),
+    STUDIOS("Production Studios", "Animation studios, film producers, and production companies"),
+    NETWORKS("Broadcast Networks", "Broadcasters, television networks, and streaming channels"),
+    REVIEWS("Community Reviews", "User star ratings and written reviews");
+
+    companion object {
+        val defaultOrder = listOf(
+            EPISODES,
+            CAST,
+            TRAILERS,
+            SCREENSHOTS,
+            COLLECTION,
+            RECOMMENDATIONS,
+            INFO,
+            STUDIOS,
+            NETWORKS,
+            REVIEWS,
+        )
+
+        fun parseOrder(raw: String?): List<DetailsSectionKey> {
+            if (raw.isNullOrBlank()) return defaultOrder
+            val list = raw.split(",").mapNotNull { name ->
+                entries.find { it.name.equals(name.trim(), ignoreCase = true) }
+            }
+            val missing = defaultOrder.filter { it !in list }
+            return (list + missing).distinct()
+        }
+
+        fun parseDisabled(raw: String?): Set<DetailsSectionKey> {
+            if (raw.isNullOrBlank() || raw.equals("NONE", ignoreCase = true)) return emptySet()
+            return raw.split(",").mapNotNull { name ->
+                entries.find { it.name.equals(name.trim(), ignoreCase = true) }
+            }.toSet()
+        }
+
+        fun serialize(list: Collection<DetailsSectionKey>): String {
+            return if (list.isEmpty()) "NONE" else list.joinToString(",") { it.name }
+        }
+    }
+}

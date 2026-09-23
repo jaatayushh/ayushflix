@@ -1,0 +1,159 @@
+CREATE TABLE IF NOT EXISTS KeyValueStore (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+insertKeyValue:
+INSERT OR REPLACE INTO KeyValueStore(key, value) VALUES (?, ?);
+
+selectKeyValue:
+SELECT value FROM KeyValueStore WHERE key = ?;
+
+deleteKeyValue:
+DELETE FROM KeyValueStore WHERE key = ?;
+
+selectAllKeyValues:
+SELECT * FROM KeyValueStore;
+
+
+CREATE TABLE IF NOT EXISTS Bookmarks (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    apiName TEXT NOT NULL,
+    posterUrl TEXT,
+    watchType INTEGER DEFAULT 0,
+    dateAdded INTEGER DEFAULT 0
+);
+
+insertBookmark:
+INSERT OR REPLACE INTO Bookmarks(id, name, url, apiName, posterUrl, watchType, dateAdded) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+deleteBookmark:
+DELETE FROM Bookmarks WHERE id = ?;
+
+selectAllBookmarks:
+SELECT * FROM Bookmarks;
+
+selectBookmarkById:
+SELECT * FROM Bookmarks WHERE id = ?;
+
+
+CREATE TABLE IF NOT EXISTS WatchHistory (
+    parentId TEXT NOT NULL,
+    episodeId TEXT NOT NULL,
+    showName TEXT NOT NULL,
+    showUrl TEXT NOT NULL,
+    apiName TEXT NOT NULL,
+    posterUrl TEXT,
+    episodeThumbnailUrl TEXT,
+    screenshotUrl TEXT,
+    episode INTEGER,
+    season INTEGER,
+    position INTEGER NOT NULL,
+    duration INTEGER NOT NULL,
+    updateTime INTEGER NOT NULL,
+    episodeName TEXT,
+    episodeDescription TEXT,
+    PRIMARY KEY(parentId, episodeId)
+);
+
+insertWatchHistory:
+INSERT OR REPLACE INTO WatchHistory(parentId, episodeId, showName, showUrl, apiName, posterUrl, episodeThumbnailUrl, screenshotUrl, episode, season, position, duration, updateTime, episodeName, episodeDescription) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteWatchHistoryByParent:
+DELETE FROM WatchHistory WHERE parentId = ?;
+
+deleteWatchHistoryByEpisode:
+DELETE FROM WatchHistory WHERE parentId = ? AND episodeId = ?;
+
+deleteAllWatchHistory:
+DELETE FROM WatchHistory;
+
+selectAllWatchHistory:
+SELECT * FROM WatchHistory ORDER BY updateTime DESC;
+
+selectWatchHistoryByParent:
+SELECT * FROM WatchHistory WHERE parentId = ? ORDER BY updateTime DESC;
+
+selectWatchHistoryByEpisode:
+SELECT * FROM WatchHistory WHERE parentId = ? AND episodeId = ? LIMIT 1;
+
+selectLatestWatchHistoryForShow:
+SELECT * FROM WatchHistory WHERE showUrl = ? ORDER BY updateTime DESC LIMIT 1;
+
+
+CREATE TABLE IF NOT EXISTS PluginUpdateHistory (
+    pluginName TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    iconUrl TEXT,
+    timestamp INTEGER NOT NULL,
+    PRIMARY KEY (pluginName, version)
+);
+
+insertPluginUpdate:
+INSERT OR REPLACE INTO PluginUpdateHistory(pluginName, version, iconUrl, timestamp) VALUES (?, ?, ?, ?);
+
+selectAllPluginUpdates:
+SELECT * FROM PluginUpdateHistory ORDER BY timestamp DESC;
+
+deleteOldPluginUpdates:
+DELETE FROM PluginUpdateHistory WHERE rowid NOT IN (SELECT rowid FROM PluginUpdateHistory ORDER BY timestamp DESC LIMIT 100);
+
+deletePluginUpdate:
+DELETE FROM PluginUpdateHistory WHERE pluginName = ?;
+
+deleteAllPluginUpdates:
+DELETE FROM PluginUpdateHistory;
+
+
+CREATE TABLE IF NOT EXISTS DownloadTasks (
+    id TEXT NOT NULL PRIMARY KEY,
+    canonicalKey TEXT NOT NULL,
+    showName TEXT NOT NULL,
+    showUrl TEXT NOT NULL,
+    episodeTitle TEXT,
+    posterUrl TEXT,
+    backdropUrl TEXT,
+    season INTEGER,
+    episode INTEGER,
+    filePath TEXT NOT NULL,
+    streamUrl TEXT NOT NULL,
+    totalBytes INTEGER NOT NULL,
+    downloadedBytes INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    quality INTEGER NOT NULL,
+    apiName TEXT NOT NULL,
+    headersJson TEXT,
+    dateAdded INTEGER NOT NULL,
+    dateCompleted INTEGER
+);
+
+insertDownloadTask:
+INSERT OR REPLACE INTO DownloadTasks(id, canonicalKey, showName, showUrl, episodeTitle, posterUrl, backdropUrl, season, episode, filePath, streamUrl, totalBytes, downloadedBytes, status, quality, apiName, headersJson, dateAdded, dateCompleted)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateDownloadProgress:
+UPDATE DownloadTasks SET downloadedBytes = ?, totalBytes = ?, status = ? WHERE id = ?;
+
+updateDownloadStatus:
+UPDATE DownloadTasks SET status = ?, dateCompleted = ? WHERE id = ?;
+
+deleteDownloadTask:
+DELETE FROM DownloadTasks WHERE id = ?;
+
+selectAllDownloads:
+SELECT * FROM DownloadTasks ORDER BY dateAdded DESC;
+
+selectActiveDownloads:
+SELECT * FROM DownloadTasks WHERE status IN ('QUEUED', 'DOWNLOADING', 'PAUSED') ORDER BY dateAdded ASC;
+
+selectCompletedDownloads:
+SELECT * FROM DownloadTasks WHERE status = 'COMPLETED' ORDER BY dateCompleted DESC;
+
+selectDownloadById:
+SELECT * FROM DownloadTasks WHERE id = ?;
+
+selectDownloadByCanonical:
+SELECT * FROM DownloadTasks WHERE canonicalKey = ? AND season = ? AND episode = ?;
+

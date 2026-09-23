@@ -132,7 +132,18 @@ class RepoLinkGenerator(
                     }
                 }
             },
-            callback = { link ->
+            callback = { rawLink ->
+                val link = com.lagradost.cloudstream3.utils.ExtractorLink(
+                    source = com.lagradost.cloudstream3.utils.AyushflixSourceFormatter.formatSourceName(rawLink.source),
+                    name = com.lagradost.cloudstream3.utils.AyushflixSourceFormatter.formatSourceName(rawLink.name),
+                    url = rawLink.url,
+                    referer = rawLink.referer,
+                    quality = rawLink.quality,
+                    headers = rawLink.headers,
+                    extractorData = rawLink.extractorData,
+                    type = rawLink.type,
+                    audioTracks = rawLink.audioTracks
+                )
                 Log.d(TAG, "Loaded ExtractorLink: $link")
                 if (link.url.isBlank() || !currentLinksUrls.add(link.url)) {
                     return@loadLinks

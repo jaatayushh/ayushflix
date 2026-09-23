@@ -1,0 +1,187 @@
+package com.lagradost.cloudstream3.desktop.ui.screens
+
+import androidx.compose.animation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.lagradost.cloudstream3.APIHolder
+import com.lagradost.cloudstream3.desktop.ui.badges.CardMetadataConfig
+import com.lagradost.cloudstream3.desktop.ui.components.AppToastManager
+import com.lagradost.cloudstream3.desktop.ui.components.CloudstreamAlertDialog
+import com.lagradost.cloudstream3.desktop.ui.components.WatchHistoryCard
+import com.lagradost.cloudstream3.desktop.ui.navigation.Config
+import com.lagradost.cloudstream3.desktop.ui.screens.history.HistoryViewModel
+import com.lagradost.cloudstream3.desktop.ui.screens.history.contract.HistoryUiEffect
+import com.lagradost.cloudstream3.desktop.ui.screens.history.contract.HistoryUiEvent
+import com.lagradost.cloudstream3.desktop.ui.theme.AppearanceConfig
+
+@Composable
+fun ComposeHistoryScreen(
+    onNavigate: (Config) -> Unit,
+    viewModel: HistoryViewModel,
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val historyList = uiState.historyList
+
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel.effectFlow) {
+        viewModel.effectFlow.collect { effect ->
+            when (effect) {
+                is HistoryUiEffect.ShowToast -> {
+                    AppToastManager.showInfo(effect.message)
+                }
+            }
+        }
+    }
+
+    CloudstreamAlertDialog(
+        show = showClearConfirmDialog,
+        onDismissRequest = { showClearConfirmDialog = false },
+        title = { Text("Clear Watch History?") },
+        text = { Text("This will permanently remove all your watch history. You won't be able to resume anything.") },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    showClearConfirmDialog = false
+                    viewModel.onEvent(HistoryUiEvent.ClearAll)
+                },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) { Text("Clear All") }
+        },
+        dismissButton = {
+            TextButton(onClick = { showClearConfirmDialog = false }) { Text("Cancel") }
+        },
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (historyList.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = "Your watch history is empty",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                Button(onClick = { onNavigate(Config.Home) }) {
+                    Text("Browse Home")
+                }
+            }
+        } else {
+            val providerBadgeDisplayMode by AppearanceConfig.providerBadgeDisplayMode.collectAsState()
+            val autoCleanTitles by CardMetadataConfig.autoCleanTitles.collectAsState()
+            val isCleanMode by AppearanceConfig.cleanModeEnabled.collectAsState()
+
+            val providerMap = remember(historyList) {
+                val providers = APIHolder.allProviders
+                historyList.associate { item ->
+                    val resolved = providers.firstOrNull {
+                        it.name == item.apiName && it.mainUrl.isNotBlank() && item.showUrl.startsWith(it.mainUrl)
+                    } ?: APIHolder.getApiFromNameNull(item.apiName)
+                    item.parentId to resolved
+                }
+            }
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Header with title and "Clear History" button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Continue Watching",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    TextButton(
+                        onClick = { showClearConfirmDialog = true },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) {
+                        Text("Clear All")
+                    }
+                }
+
+                // Grid of 16:9 History cards
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 340.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(historyList, key = { it.parentId }) { history ->
+                        val provider = providerMap[history.parentId]
+                        WatchHistoryCard(
+                            history = history,
+                            provider = provider,
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f),
+                            providerBadgeDisplayMode = providerBadgeDisplayMode,
+                            autoCleanTitles = autoCleanTitles,
+                            isCleanMode = isCleanMode,
+                            onRemove = {
+                                viewModel.onEvent(HistoryUiEvent.RemoveItem(history.parentId))
+                            },
+                            onClick = {
+                                if (provider != null) {
+                                    onNavigate(
+                                        Config.Details(
+                                            providerName = provider.name,
+                                            url = history.showUrl,
+                                            preloadedName = history.showName,
+                                            preloadedPoster = history.posterUrl,
+                                            preloadedBg = null,
+                                            autoPlay = false,
+                                            targetSeason = history.season,
+                                            targetEpisodeId = history.episodeId,
+                                        ),
+                                    )
+                                }
+                            },
+                            onPlayClick = {
+                                if (provider != null) {
+                                    onNavigate(
+                                        Config.Details(
+                                            providerName = provider.name,
+                                            url = history.showUrl,
+                                            preloadedName = history.showName,
+                                            preloadedPoster = history.posterUrl,
+                                            preloadedBg = null,
+                                            autoPlay = true,
+                                            targetSeason = history.season,
+                                            targetEpisodeId = history.episodeId,
+                                        ),
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
