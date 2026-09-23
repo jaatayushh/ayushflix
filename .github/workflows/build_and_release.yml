@@ -95,9 +95,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -133,9 +130,9 @@ jobs:
         shell: pwsh
         run: |
           cd desktop
-          if ($env:ANDROID_HOME) {
-            "sdk.dir=$($env:ANDROID_HOME.Replace('\', '/'))" | Out-File -Encoding utf8 "local.properties"
-          }
+          $sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } elseif (Test-Path "C:\Android\android-sdk") { "C:\Android\android-sdk" } else { "$env:LOCALAPPDATA\Android\Sdk" }
+          Write-Host "Using Android SDK at: $sdk"
+          "sdk.dir=$($sdk.Replace('\', '/'))" | Out-File -Encoding utf8 "local.properties"
           ./gradlew.bat :desktop-app:createDistributable -PAPP_VERSION=1.0.0 --no-daemon --stacktrace
 
       - name: Install Inno Setup
