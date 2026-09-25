@@ -225,6 +225,7 @@ jobs:
             **Universal update released with auto update enabled**
 
             ### Android Client (Mobile & TV)
+            - **Audio Track Selection Fix**: Resolved issue where audio track selection remained stuck on Hindi; user track and language intent in the tracks dialog is now fully respected.
             - **Liquid Glass Navigation Pill**: Redesigned floating bottom navigation pill with frosted glass indicator and crystal-clear icons.
             - **Who's Watching?**: Netflix-style startup profile selection screen with animated avatars.
             - **Enhanced Top Match**: Enlarged card layout with high-resolution poster display and instant play button.

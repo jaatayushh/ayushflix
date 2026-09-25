@@ -185,6 +185,7 @@ class GeneratorPlayer : FullScreenPlayer() {
 
     private var isPlayerActive: AtomicBoolean = AtomicBoolean(false)
     private var isNextEpisode: Boolean = false // this is used to reset the watch time
+    private var userSelectedAudioTrack: Boolean = false
 
     private var preferredAutoSelectSubtitles: String? = null // null means do nothing, "" means none
     private val allMeta: List<ResultEpisode>?
@@ -221,20 +222,49 @@ class GeneratorPlayer : FullScreenPlayer() {
         viewModel.addSubtitles(subtitles.toSet())
     }
 
+    private fun isSameAudioTrack(a: AudioTrack?, b: AudioTrack?): Boolean {
+        if (a == null || b == null) return false
+        if (a.id != null && b.id != null) {
+            return a.id == b.id && a.formatIndex == b.formatIndex
+        }
+        return a.formatIndex == b.formatIndex &&
+                (a.language?.equals(b.language, ignoreCase = true) == true || a.label?.equals(b.label, ignoreCase = true) == true)
+    }
+
     override fun onTracksInfoChanged() {
         val tracks = player.getVideoTracks()
         playerBinding?.playerTracksBtt?.isVisible =
             tracks.allVideoTracks.size > 1 || tracks.allAudioTracks.size > 1
-        // Prioritize Hindi audio track if available (Castle TV / multi-audio content)
-        val hindiTrack = tracks.allAudioTracks.firstOrNull {
-            it.language?.equals("hi", ignoreCase = true) == true ||
-            it.language?.equals("hin", ignoreCase = true) == true ||
-            it.label?.contains("hindi", ignoreCase = true) == true
+
+        // If the user explicitly chose an audio track during this playback session, do not override their intent!
+        if (userSelectedAudioTrack) {
+            updatePlayerInfo()
+            return
         }
-        if (hindiTrack != null) {
-            player.setPreferredAudioTrack(hindiTrack.language, hindiTrack.id, hindiTrack.formatIndex)
-        } else if (tracks.allAudioTracks.any { it.language == preferredAudioTrackLanguage }) {
-            player.setPreferredAudioTrack(preferredAudioTrackLanguage)
+
+        // Prioritize matching preferred audio track language if set by the user
+        val preferredLang = preferredAudioTrackLanguage
+        val preferredTrack = if (!preferredLang.isNullOrBlank()) {
+            tracks.allAudioTracks.firstOrNull {
+                it.language?.equals(preferredLang, ignoreCase = true) == true ||
+                it.label?.contains(preferredLang, ignoreCase = true) == true
+            }
+        } else null
+
+        if (preferredTrack != null) {
+            if (!isSameAudioTrack(tracks.currentAudioTrack, preferredTrack)) {
+                player.setPreferredAudioTrack(preferredTrack.language, preferredTrack.id, preferredTrack.formatIndex)
+            }
+        } else {
+            // Default to Hindi audio track if available (Castle TV / multi-audio content)
+            val hindiTrack = tracks.allAudioTracks.firstOrNull {
+                it.language?.equals("hi", ignoreCase = true) == true ||
+                it.language?.equals("hin", ignoreCase = true) == true ||
+                it.label?.contains("hindi", ignoreCase = true) == true
+            }
+            if (hindiTrack != null && !isSameAudioTrack(tracks.currentAudioTrack, hindiTrack)) {
+                player.setPreferredAudioTrack(hindiTrack.language, hindiTrack.id, hindiTrack.formatIndex)
+            }
         }
         updatePlayerInfo()
     }
@@ -524,8 +554,10 @@ class GeneratorPlayer : FullScreenPlayer() {
         //  setEpisodes(viewModel.getAllMeta() ?: emptyList())
         setPlayerDimen(null)
         setTitle()
-        if (!sameEpisode)
+        if (!sameEpisode) {
             hasRequestedStamps = false
+            userSelectedAudioTrack = false
+        }
 
         loadExtractorJob(link.first)
         // load player
@@ -1482,8 +1514,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                 }
 
                 var audioIndexStart = currentAudioTracks.indexOfFirst { track ->
-                    track.id == tracks.currentAudioTrack?.id &&
-                            track.formatIndex == tracks.currentAudioTrack?.formatIndex
+                    isSameAudioTrack(track, tracks.currentAudioTrack)
                 }.coerceAtLeast(0)
 
                 val audioArrayAdapter =
@@ -1547,11 +1578,17 @@ class GeneratorPlayer : FullScreenPlayer() {
 
                 binding.applyBtt.setOnClickListener {
                     val currentTrack = currentAudioTracks.getOrNull(audioIndexStart)
-                    player.setPreferredAudioTrack(
-                        currentTrack?.language,
-                        currentTrack?.id,
-                        currentTrack?.formatIndex,
-                    )
+                    if (currentTrack != null) {
+                        userSelectedAudioTrack = true
+                        if (!currentTrack.language.isNullOrBlank()) {
+                            preferredAudioTrackLanguage = currentTrack.language
+                        }
+                        player.setPreferredAudioTrack(
+                            currentTrack.language,
+                            currentTrack.id,
+                            currentTrack.formatIndex,
+                        )
+                    }
 
                     val currentVideo = currentVideoTracks.getOrNull(videoIndex)
                     val width = currentVideo?.width ?: NO_VALUE

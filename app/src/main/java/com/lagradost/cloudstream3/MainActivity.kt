@@ -1339,7 +1339,9 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
                 .putString("cncverse_donation_cached_month", today.substring(0, 6))
                 .apply()
 
-            com.lagradost.cloudstream3.ui.player.CS3IPlayer.preferredAudioTrackLanguage = "hi"
+            if (com.lagradost.cloudstream3.ui.player.CS3IPlayer.preferredAudioTrackLanguage.isNullOrBlank()) {
+                com.lagradost.cloudstream3.ui.player.CS3IPlayer.preferredAudioTrackLanguage = "hi"
+            }
 
             supportFragmentManager.registerFragmentLifecycleCallbacks(
                 object : androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {

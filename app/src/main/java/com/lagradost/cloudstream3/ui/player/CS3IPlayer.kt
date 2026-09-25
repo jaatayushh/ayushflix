@@ -379,37 +379,34 @@ class CS3IPlayer : IPlayer {
     }
 
     override fun setPreferredAudioTrack(trackLanguage: String?, id: String?, formatIndex: Int?) {
-        preferredAudioTrackLanguage = trackLanguage
-        id?.let { trackId ->
-            val trackFormatIndex = formatIndex ?: 0
-            exoPlayer?.currentTracks?.groups
-                ?.filter { it.type == TRACK_TYPE_AUDIO }
-                ?.find { group ->
-                    group.getFormats().any { (format, _) ->
-                        format.id == trackId
-                    }
-                }
-                ?.let { group ->
-                    exoPlayer?.trackSelectionParameters
-                        ?.buildUpon()
-                        ?.setOverrideForType(
-                            TrackSelectionOverride(
-                                group.mediaTrackGroup,
-                                trackFormatIndex
-                            )
-                        )
-                        ?.build()
-                }
-                ?.let { newParams ->
-                    exoPlayer?.trackSelectionParameters = newParams
-                    return
-                }
+        if (!trackLanguage.isNullOrBlank()) {
+            preferredAudioTrackLanguage = trackLanguage
         }
-        // Fallback to language-based selection
-        exoPlayer?.trackSelectionParameters = exoPlayer?.trackSelectionParameters
-            ?.buildUpon()
-            ?.setPreferredAudioLanguage(trackLanguage)
-            ?.build() ?: return
+        val audioGroups = exoPlayer?.currentTracks?.groups?.filter { it.type == TRACK_TYPE_AUDIO } ?: emptyList()
+        val matchedGroup = audioGroups.firstNotNullOfOrNull { group ->
+            val formats = group.getFormats()
+            val match = formats.find { (format, fIndex) ->
+                (id != null && format.id == id && (formatIndex == null || fIndex == formatIndex)) ||
+                (id == null && formatIndex != null && fIndex == formatIndex && (trackLanguage == null || format.language == trackLanguage)) ||
+                (id == null && formatIndex == null && trackLanguage != null && (format.language?.equals(trackLanguage, ignoreCase = true) == true || format.label?.contains(trackLanguage, ignoreCase = true) == true))
+            }
+            match?.let { group to it.second }
+        }
+
+        val builder = exoPlayer?.trackSelectionParameters?.buildUpon() ?: return
+        builder.clearOverridesOfType(TRACK_TYPE_AUDIO)
+        if (matchedGroup != null) {
+            builder.setOverrideForType(
+                TrackSelectionOverride(
+                    matchedGroup.first.mediaTrackGroup,
+                    matchedGroup.second
+                )
+            )
+        }
+        if (!trackLanguage.isNullOrBlank()) {
+            builder.setPreferredAudioLanguage(trackLanguage)
+        }
+        exoPlayer?.trackSelectionParameters = builder.build()
     }
 
     /**
