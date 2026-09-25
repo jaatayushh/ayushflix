@@ -97,11 +97,19 @@ class PluginsViewModel : ViewModel() {
                 val plugins = getPlugins(repository)
 
                 plugins.filter { pluginWrapper ->
+                    val repoPath = getPluginPath(activity, pluginWrapper.plugin.internalName, repository.url)
+                    val installed = PluginManager.getPluginsOnline().firstOrNull {
+                        it.internalName.equals(pluginWrapper.plugin.internalName, ignoreCase = true)
+                    }
+                    val isOutdated = installed != null && (
+                        pluginWrapper.plugin.version > installed.version ||
+                        (pluginWrapper.plugin.fileHash != null && repoPath.exists() && RepositoryManager.sha256(repoPath) != pluginWrapper.plugin.fileHash)
+                    )
                     !isDownloaded(
                         activity,
                         pluginWrapper.plugin.internalName,
                         repository.url
-                    )
+                    ) || isOutdated
                 }.also { list ->
                     main {
                         showToast(
@@ -181,11 +189,23 @@ class PluginsViewModel : ViewModel() {
             }
         }
 
-        val (success, message) = if (file.exists()) {
+        val installed = PluginManager.getPluginsOnline().firstOrNull {
+            it.internalName.equals(pluginWrapper.plugin.internalName, ignoreCase = true)
+        }
+        val isOutdated = installed != null && (
+            pluginWrapper.plugin.version > installed.version ||
+            (pluginWrapper.plugin.fileHash != null && file.exists() && RepositoryManager.sha256(file) != pluginWrapper.plugin.fileHash)
+        )
+
+        val (success, message) = if (file.exists() && !isOutdated) {
             PluginManager.deletePlugin(file) to R.string.plugin_deleted
         } else {
             val isEnabled = pluginWrapper.plugin.status != PROVIDER_STATUS_DOWN
-            val message = if (isEnabled) R.string.plugin_loaded else R.string.plugin_downloaded
+            val message = if (isOutdated) R.string.plugin_loaded else if (isEnabled) R.string.plugin_loaded else R.string.plugin_downloaded
+            if (file.exists()) {
+                PluginManager.unloadPlugin(file.absolutePath)
+                PluginManager.unloadPluginByName(metadata.internalName)
+            }
             PluginManager.downloadPlugin(
                 activity,
                 metadata.url,

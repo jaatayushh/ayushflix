@@ -187,8 +187,8 @@ class PluginsFragment : BaseFragment<FragmentPluginsBinding>(
         } else {
             pluginViewModel.updatePluginList(context, listOf(repositoryData))
             binding.tvtypesChipsScroll.root.isVisible = true
-            // not needed for users but may be useful for devs
-            downloadAllButton?.isVisible = BuildConfig.DEBUG
+            // Available for users to download all or update all plugins
+            downloadAllButton?.isVisible = true
 
             bindChips(
                 binding.tvtypesChipsScroll.tvtypesChips,

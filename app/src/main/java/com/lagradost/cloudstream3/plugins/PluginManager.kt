@@ -567,13 +567,15 @@ object PluginManager {
                 val onlinePlugins = getPluginsOnline()
                 val existingOnline = onlinePlugins.firstOrNull { it.internalName.equals(internalName, ignoreCase = true) }
 
-                // If a newer online version was already downloaded and exists, load that instead of the bundled older version
-                if (existingOnline != null && File(existingOnline.filePath).exists() && File(existingOnline.filePath).length() > 0) {
-                    if (existingOnline.version > 1) {
-                        Log.i(TAG, "Bundled plugin $internalName skipped; newer online plugin found: ${existingOnline.filePath} (v${existingOnline.version})")
-                        loadPlugin(context, File(existingOnline.filePath), existingOnline)
-                        continue
-                    }
+                // If an online version was already downloaded in Extensions folder and exists, load that instead of the bundled fallback
+                if (existingOnline != null &&
+                    !existingOnline.filePath.contains("/bundled/") &&
+                    File(existingOnline.filePath).exists() &&
+                    File(existingOnline.filePath).length() > 0
+                ) {
+                    Log.i(TAG, "Bundled plugin $internalName skipped; user/online downloaded plugin found: ${existingOnline.filePath} (v${existingOnline.version})")
+                    loadPlugin(context, File(existingOnline.filePath), existingOnline)
+                    continue
                 }
 
                 if (outFile.exists() && outFile.length() > 0) {

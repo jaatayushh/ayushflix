@@ -16,6 +16,8 @@ import com.lagradost.cloudstream3.TvType
 import com.lagradost.cloudstream3.databinding.RepositoryItemBinding
 import com.lagradost.cloudstream3.plugins.PluginManager
 import com.lagradost.cloudstream3.plugins.PluginWrapper
+import com.lagradost.cloudstream3.plugins.RepositoryManager
+import java.io.File
 import com.lagradost.cloudstream3.ui.BaseDiffCallback
 import com.lagradost.cloudstream3.ui.NoStateAdapter
 import com.lagradost.cloudstream3.ui.ViewHolderState
@@ -90,9 +92,21 @@ class PluginAdapter(
             binding.repositoryNameText.text = ""
         }
 
-        val drawableInt = if (item.isDownloaded)
-            R.drawable.ic_baseline_delete_outline_24
-        else R.drawable.netflix_download
+        val isOutdated = if (item.isDownloaded) {
+            val installed = PluginManager.getPluginsOnline().firstOrNull {
+                it.internalName.equals(metadata.internalName, ignoreCase = true)
+            }
+            installed != null && (
+                metadata.version > installed.version ||
+                (metadata.fileHash != null && File(installed.filePath).exists() && RepositoryManager.sha256(File(installed.filePath)) != metadata.fileHash)
+            )
+        } else false
+
+        val drawableInt = when {
+            isOutdated -> R.drawable.ic_baseline_autorenew_24
+            item.isDownloaded -> R.drawable.ic_baseline_delete_outline_24
+            else -> R.drawable.netflix_download
+        }
 
         binding.nsfwMarker.isVisible = metadata.tvTypes?.contains(TvType.NSFW.name) ?: false
         binding.actionButton.setImageResource(drawableInt)
