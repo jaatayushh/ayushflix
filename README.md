@@ -5,7 +5,7 @@
 <h1 align="center">Ayushflix</h1>
 
 <p align="center">
-  <strong>The Ultimate Dedicated, Ad-Free Streaming Experience for Android, Android TV & Windows (WSA).</strong>
+  <strong>The Ultimate Dedicated, Ad-Free Streaming Experience for Android, Android TV & Windows PC.</strong>
 </p>
 
 <p align="center">
@@ -20,78 +20,35 @@
 
 ## 🌟 What is Ayushflix?
 
-**Ayushflix** is a dedicated media streaming application built specifically for **Android Smartphones, Tablets, Android TV / Google TV / FireStick, and Windows PC (via WSA)**.
+**Ayushflix** is a dedicated media streaming application built specifically for **Android Smartphones, Tablets, Android TV / Google TV / FireStick, and Windows PC**.
 
-Unlike generic media centers that require hunting down third-party repository URLs, installing extensions, and dealing with broken links, **Ayushflix comes 100% pre-configured out-of-the-box**. It provides high-performance, ad-free streaming with smart multi-audio dub prioritization and built-in DNS-over-HTTPS (DoH) to bypass ISP throttling and blocks.
+Unlike generic media centers that require hunting down third-party URLs and dealing with broken configurations, **Ayushflix comes 100% pre-configured out-of-the-box** with automatic provider updates. It provides high-performance, ad-free streaming with smart multi-audio dub prioritization and built-in DNS-over-HTTPS (DoH) to bypass ISP throttling and blocks.
 
 ---
 
-## ⚡ Direct Download (v1.0.9)
+## ⚡ Direct Download
 
 | Platform | Format | Size | Architecture | Direct Download |
 | :--- | :---: | :---: | :---: | :---: |
-| 📱 **Android Smartphone / Tablet** | `.apk` | **~50 MB** | `arm64-v8a`, `armeabi-v7a`, `x86_64` | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
-| 📺 **Android TV / Google TV / FireStick** | `.apk` | **~50 MB** | Native 10-Foot Leanback UI | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
-| 🖥️ **Windows 10 / 11 (WSA / Emulator)** | `.apk` | **~50 MB** | Native Desktop Window | [**Download Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk) |
-| 🧩 **CloudStream 3 (Extension Plugin)** | `.cs3` | **~96 KB** | CloudStream 3 / Aniyomi | [**Download Ayushflix.cs3**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix.cs3) |
-
-> 💡 **CloudStream 3 In-App Repository URL**:  
-> In CloudStream 3, go to **Settings ➔ Extensions ➔ Add Repository** and enter:  
-> `https://raw.githubusercontent.com/jaatayushh/ayushflix/main/repo.json`
+| 📱 **Android Smartphone / Tablet** | `.apk` | **~50 MB** | `arm64-v8a`, `armeabi-v7a`, `x86_64` | [**Download Latest Android APK**](https://github.com/jaatayushh/ayushflix/releases/latest) |
+| 📺 **Android TV / Google TV / FireStick** | `.apk` | **~50 MB** | Native 10-Foot Leanback UI | [**Download Latest Android TV APK**](https://github.com/jaatayushh/ayushflix/releases/latest) |
+| 🖥️ **Windows 10 / 11 Desktop** | `.exe` / `.msi` | **~85 MB** | 64-bit Windows Desktop Installer | [**Download Windows Client**](https://github.com/jaatayushh/ayushflix/releases/latest) |
 
 ---
 
-## 🖥️ Complete Windows Setup Guide (WSA & True Fullscreen)
+## 🖥️ Windows Desktop Guide
 
-You can run Ayushflix natively on **Windows 10 and Windows 11** without heavy emulators like BlueStacks using **Windows Subsystem for Android (WSA)**.
+Ayushflix offers a native Windows desktop client featuring MPV hardware accelerated decoding and borderless fullscreen support.
 
-### Step 1: Enable Virtual Machine Platform
-Open **PowerShell as Administrator** (Right-click Start button -> *Terminal / PowerShell (Admin)*) and run:
-```powershell
-dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-```
-*(Restart your PC if prompted).*
+### Installation
+1. Download the Windows installer (`.exe` or `.msi`) from the [Latest Release](https://github.com/jaatayushh/ayushflix/releases/latest).
+2. Run the setup wizard to install Ayushflix on Windows 10 or Windows 11.
+3. Launch Ayushflix directly from your Start Menu or Desktop shortcut.
 
-### Step 2: Install WSA
-1. Download a WSA build with Magisk & GApps (e.g. from GitHub or WSABuilds).
-2. Extract the archive (e.g. to `C:\WSA`).
-3. Open **PowerShell as Administrator** inside the folder and run:
-   ```powershell
-   .\Install.ps1
-   ```
-   *(Or simply right-click `Run.bat` inside the folder and click **Run as administrator**).*
-
-### Step 3: Enable Developer Mode in WSA
-1. Open **Windows Subsystem for Android Settings** from your Windows Start Menu.
-2. Go to **Advanced settings** (or **Developer** tab).
-3. Turn **Developer mode** to **ON**. Note the IP address and port (usually `127.0.0.1:58526`).
-
-### Step 4: Install Ayushflix on Windows
-
-**Option A: 1-Liner PowerShell Command (Fastest)**
-Open PowerShell and run:
-```powershell
-Invoke-WebRequest -Uri "https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk" -OutFile "$env:TEMP\Ayushflix.apk"
-adb connect 127.0.0.1:58526
-adb install -r "$env:TEMP\Ayushflix.apk"
-```
-
-**Option B: 1-Click GUI via WSA-Pacman**
-1. Download and install **[WSA-Pacman](https://github.com/alesimula/wsa_pacman/releases/latest)**.
-2. Download [**Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk).
-3. Double-click the APK and click **Install**.
-
-Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
-
----
-
-### 📺 How to Enter 100% True Borderless Fullscreen on Windows
-
-> [!TIP]
-> **Hiding the Windows Title Bar (App Name, Minimize, Maximize, Close Buttons):**
-> * When Ayushflix is open on your PC, press **`F11`** (or **`Fn + F11`** on laptops) on your keyboard.
-> * This instantly toggles **True Borderless Fullscreen**—the top title bar and Windows taskbar disappear completely, giving you a full 100% cinema display.
-> * To exit fullscreen or reveal the window controls, press **`F11`** again or move your mouse to the top edge of your monitor.
+### 📺 True Borderless Fullscreen on Windows
+- When running Ayushflix on your PC, press **`F11`** (or **`Fn + F11`** on laptops) anytime.
+- This toggles **True Borderless Fullscreen**—the window title bar and taskbar disappear completely, giving you a full 100% cinema display.
+- Press **`F11`** again to exit fullscreen.
 
 ---
 
@@ -100,12 +57,12 @@ Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
 | Feature | Ayushflix 🎬 | Generic Media Apps ❌ |
 | :--- | :---: | :---: |
 | **Ads & Popups** | **0% (Completely Stripped)** | Invasive popups & redirects |
-| **Setup Process** | **Instant (Zero Config)** | Requires external repo links & setups |
+| **Setup Process** | **Instant (Zero Config)** | Requires manual setup & repo hunting |
 | **ISP Bypass** | **Built-in Google DoH (No VPN needed)** | Blocked by Indian ISPs (Jio/Airtel) |
 | **Default Audio** | **Smart Hindi Dub Auto-Selection** | Random / Non-Hindi default |
 | **Fake Video Traps** | **Filtered & Decrypted** | Plays fake update warning loops |
 | **Android TV Mode** | **Native D-Pad Remote Navigation** | Broken mouse-only navigation |
-| **Desktop / WSA** | **Native Windows Window + F11 Fullscreen** | Unsupported / Stretched |
+| **Desktop Mode** | **Native Windows Client + F11 Fullscreen** | Unsupported / Stretched |
 | **App Performance** | **Butter-smooth 60fps (Release Build)** | Sluggish with debug bloat |
 | **Privacy** | **Zero Telemetry / No Account Needed** | Trackers & mandatory sign-ups |
 
@@ -115,7 +72,7 @@ Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
 
 - **⚡ Instant 1080p FHD Playback**: Stream in crisp 1080p Full HD, 720p HD, and auto-adaptive resolutions.
 - **🛡️ Built-in ISP Block Bypass**: Native DNS-over-HTTPS (DoH) integration prevents ISP DNS hijacking and timeout errors.
-- **🎧 Intelligent Hindi Dub Auto-Selector**: Multi-language titles automatically start in **Hindi** audio by default.
+- **🎧 Intelligent Hindi Dub Auto-Selector**: Multi-language titles automatically start in **Hindi** audio by default with instant switcher for original audio.
 - **📺 Android TV & Google TV Optimized**: Full Leanback 10-foot UI with remote D-pad navigation, continue watching row, and TV clock.
 - **🖥️ Windows Desktop Native**: Fluid mouse, keyboard, and resize support with borderless `F11` cinema view.
 - **🎨 Modern Player**: Built on Google's Media3 & ExoPlayer engine with gesture controls, playback speed controls, and Picture-in-Picture (PiP).
@@ -128,7 +85,7 @@ Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
 ## 📲 Mobile & TV Installation Guide
 
 ### 📱 Android Smartphone / Tablet
-1. Download [**Ayushflix-v1.0.9.apk**](https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk).
+1. Download the latest APK from [Releases](https://github.com/jaatayushh/ayushflix/releases/latest).
 2. Tap the downloaded `.apk` file.
 3. If prompted, toggle **Allow from this source** in your device settings.
 4. Tap **Install** and launch **Ayushflix**!
@@ -136,20 +93,20 @@ Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
 ### 📺 Android TV, Google TV & Amazon FireStick
 1. **Method A (Send Files to TV)**:
    - Install *Send Files to TV* on both your phone/PC and your Android TV.
-   - Send `Ayushflix-v1.0.9.apk` to your TV and install using a file manager (e.g., *File Commander*).
+   - Send the APK to your TV and install using a file manager (e.g., *File Commander*).
 2. **Method B (USB Drive)**:
-   - Copy `Ayushflix-v1.0.9.apk` onto a FAT32/NTFS formatted USB flash drive.
+   - Copy the APK onto a FAT32/NTFS formatted USB flash drive.
    - Plug into your TV, open a file manager, and select the APK to install.
 3. **Method C (Downloader App)**:
    - Open the *Downloader* app on FireStick / Android TV.
-   - Enter the direct release URL: `https://github.com/jaatayushh/ayushflix/releases/download/v1.0.9/Ayushflix-v1.0.9.apk` to download and install.
+   - Enter the release download URL to download and install.
 
 ---
 
 ## 🛠️ Building From Source
 
 ### Prerequisites
-- **JDK 17 or higher** (JDK 21 / OpenJDK 25 recommended)
+- **JDK 17 or higher** (JDK 21 recommended)
 - **Android SDK** (API level 35 / 36 / 37)
 - **Gradle 9.x** (Included via Gradle Wrapper)
 
@@ -165,7 +122,7 @@ Ayushflix will now appear directly in your Windows Start Menu and Taskbar!
    ```
 3. The compiled APK will be located at:
    ```
-   app/build/outputs/apk/stable/release/Ayushflix-v1.0.9.apk
+   app/build/outputs/apk/stable/release/
    ```
 
 ---

@@ -1547,7 +1547,11 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
                 mainPluginsLoadedEvent.invoke(true)
                 afterPluginsLoadedEvent.invoke(false)
-                syncUpstreamNivinCncPlugins(this@MainActivity, isTv)
+                try {
+                    PluginManager.___DO_NOT_CALL_FROM_A_PLUGIN_updateAllOnlinePluginsAndLoadThem(this@MainActivity)
+                } catch (t: Throwable) {
+                    Log.e("PluginManager", "Failed to auto-update plugins on launch", t)
+                }
             }
         } else {
             val builder: AlertDialog.Builder = AlertDialog.Builder(this)
@@ -2235,63 +2239,5 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         }
     }
 
-    private fun syncUpstreamNivinCncPlugins(context: Context, isTv: Boolean) {
-        ioSafe {
-            try {
-                val targets = if (isTv) {
-                    listOf("CNC%20Verse.cs3" to "CNC Verse.cs3", "CastleTvProvider.cs3" to "CastleTvProvider.cs3")
-                } else {
-                    listOf("CNC%20Verse%20Mobile.cs3" to "CNC Verse Mobile.cs3", "CastleTvProvider.cs3" to "CastleTvProvider.cs3")
-                }
-                val bundledDir = File(context.filesDir, "bundled_plugins")
-                if (!bundledDir.exists()) bundledDir.mkdirs()
-
-                for ((remoteName, localName) in targets) {
-                    try {
-                        val url = "https://raw.githubusercontent.com/NivinCNC/CNCVerse-Cloud-Stream-Extension/builds/$remoteName"
-                        val localFile = File(bundledDir, localName)
-                        val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                        conn.requestMethod = "HEAD"
-                        conn.connectTimeout = 6000
-                        conn.readTimeout = 6000
-                        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Ayushflix-NivinSync)")
-                        conn.connect()
-                        val remoteLen = conn.contentLengthLong
-                        conn.disconnect()
-
-                        if (remoteLen > 0 && remoteLen != localFile.length()) {
-                            val tmpFile = File(bundledDir, "$localName.tmp")
-                            val getConn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                            getConn.connectTimeout = 8000
-                            getConn.readTimeout = 15000
-                            getConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Ayushflix-NivinSync)")
-                            getConn.connect()
-                            if (getConn.responseCode == 200) {
-                                getConn.inputStream.use { input ->
-                                    tmpFile.outputStream().use { output ->
-                                        input.copyTo(output)
-                                    }
-                                }
-                                if (tmpFile.exists() && tmpFile.length() == remoteLen) {
-                                    if (localFile.exists()) {
-                                        localFile.setWritable(true)
-                                        localFile.delete()
-                                    }
-                                    tmpFile.renameTo(localFile)
-                                    try { localFile.setReadOnly() } catch (_: Throwable) {}
-                                    Log.i("PluginManager", "Auto-updated $localName from NivinCNC upstream ($remoteLen bytes)")
-                                } else {
-                                    tmpFile.delete()
-                                }
-                            }
-                            getConn.disconnect()
-                        }
-                    } catch (t: Throwable) {
-                        Log.w("PluginManager", "Failed to check upstream NivinCNC update for $localName", t)
-                    }
-                }
-            } catch (_: Throwable) {}
-        }
-    }
 }
 

@@ -175,7 +175,10 @@ object PluginManager {
     }
 
     fun getPluginsOnline(): Array<PluginData> {
-        return getKey<Array<PluginData>>(PLUGINS_KEY) ?: emptyArray()
+        val list = getKey<Array<PluginData>>(PLUGINS_KEY) ?: emptyArray()
+        return list.groupBy { it.internalName }.map { (_, items) ->
+            items.maxByOrNull { it.version } ?: items.first()
+        }.toTypedArray()
     }
 
     fun getPluginsLocal(): Array<PluginData> {
@@ -225,15 +228,22 @@ object PluginManager {
         val onlineData: PluginWrapper,
     ) {
         val isOutdated =
-            onlineData.plugin.version > savedData.version || onlineData.plugin.version == PLUGIN_VERSION_ALWAYS_UPDATE
+            onlineData.plugin.version > savedData.version ||
+            onlineData.plugin.version == PLUGIN_VERSION_ALWAYS_UPDATE ||
+            savedData.version == PLUGIN_VERSION_NOT_SET ||
+            (onlineData.plugin.fileHash != null && File(savedData.filePath).exists() && sha256(File(savedData.filePath)) != onlineData.plugin.fileHash)
         val isDisabled = onlineData.plugin.status == PROVIDER_STATUS_DOWN
 
         fun validOnlineData(context: Context): Boolean {
-            return getPluginPath(
+            val expectedPath = getPluginPath(
                 context,
                 savedData.internalName,
                 onlineData.repositoryData.url
-            ).absolutePath == savedData.filePath
+            ).absolutePath
+            return expectedPath == savedData.filePath ||
+                    savedData.filePath.contains("/bundled/") ||
+                    savedData.internalName.equals(onlineData.plugin.internalName, ignoreCase = true) ||
+                    (savedData.url != null && savedData.url == onlineData.plugin.url)
         }
     }
 
@@ -272,13 +282,110 @@ object PluginManager {
      * DO NOT USE THIS IN A PLUGIN! It may case an infinite recursive loop lagging or crashing everyone's devices.
      * If you use it from a plugin, do not expect a stable jvmName, SO DO NOT USE IT!
      */
+    fun unloadPluginByName(internalName: String) {
+        val toUnload = synchronized(plugins) {
+            plugins.filter { (path, plugin) ->
+                path.contains(internalName, ignoreCase = true) ||
+                plugin.filename?.contains(internalName, ignoreCase = true) == true ||
+                plugin.filename?.let { File(it).nameWithoutExtension.equals(internalName, ignoreCase = true) } == true
+            }.keys.toList()
+        }
+        for (path in toUnload) {
+            unloadPlugin(path)
+        }
+    }
+
+    /**
+     * Needs to be run before other plugin loading because plugin loading can not be overwritten
+     * 1. Gets all online data about the downloaded plugins
+     * 2. If disabled do nothing
+     * 3. If outdated download and load the plugin
+     * 4. Else load the plugin normally
+     *
+     * DO NOT USE THIS IN A PLUGIN! It may case an infinite recursive loop lagging or crashing everyone's devices.
+     * If you use it from a plugin, do not expect a stable jvmName, SO DO NOT USE IT!
+     */
     @Suppress("FunctionName")
     @InternalAPI
     @Throws
     suspend fun ___DO_NOT_CALL_FROM_A_PLUGIN_updateAllOnlinePluginsAndLoadThem(activity: Activity) {
+        assertNonRecursiveCallstack()
+
+        ___DO_NOT_CALL_FROM_A_PLUGIN_loadAllOnlinePlugins(activity)
+
+        val urls = (getKey<Array<RepositoryData>>(REPOSITORIES_KEY) ?: emptyArray()) + PREBUILT_REPOSITORIES
+        val onlinePlugins = urls.toList().amap {
+            getRepoPlugins(it) ?: emptyList()
+        }.flatten().distinctBy { it.plugin.url }
+
+        if (onlinePlugins.isEmpty()) {
+            loadedOnlinePlugins = true
+            afterPluginsLoadedEvent.invoke(false)
+            return
+        }
+
+        val allPlugins = getPluginsOnline().flatMap { savedData ->
+            onlinePlugins
+                .filter { it.plugin.internalName.equals(savedData.internalName, ignoreCase = true) }
+                .mapNotNull { onlineData ->
+                    OnlinePluginData(savedData, onlineData).takeIf { it.validOnlineData(activity) }
+                }
+        }.distinctBy { it.onlineData.plugin.url }
+
+        val updatedPlugins = mutableListOf<String>()
+
+        allPlugins.amap { pluginData ->
+            if (pluginData.isDisabled) {
+                Log.i(TAG, "Unloading disabled plugin: ${pluginData.onlineData.plugin.name}")
+                unloadPlugin(pluginData.savedData.filePath)
+                unloadPluginByName(pluginData.savedData.internalName)
+            } else if (pluginData.isOutdated) {
+                Log.i(TAG, "Updating outdated plugin: ${pluginData.onlineData.plugin.name} (v${pluginData.savedData.version} -> v${pluginData.onlineData.plugin.version})")
+                val targetFile = getPluginPath(
+                    activity,
+                    pluginData.savedData.internalName,
+                    pluginData.onlineData.repositoryData.url
+                )
+                unloadPlugin(pluginData.savedData.filePath)
+                unloadPluginByName(pluginData.savedData.internalName)
+
+                if (downloadPlugin(
+                        activity,
+                        pluginData.onlineData.plugin.url,
+                        pluginData.onlineData.plugin.fileHash,
+                        pluginData.savedData.internalName,
+                        targetFile,
+                        true
+                    )
+                ) {
+                    updatedPlugins.add(pluginData.onlineData.plugin.name)
+                    try {
+                        val oldFile = File(pluginData.savedData.filePath)
+                        if (oldFile.absolutePath != targetFile.absolutePath && oldFile.exists() && oldFile.parentFile?.name == "bundled") {
+                            oldFile.delete()
+                        }
+                    } catch (_: Throwable) {}
+                }
+            }
+        }
+
+        if (updatedPlugins.isNotEmpty()) {
+            main {
+                val message = activity.getString(R.string.plugins_updated_manually, updatedPlugins.size)
+                showToast(message, Toast.LENGTH_SHORT)
+
+                val notificationText = UiText.StringResource(
+                    R.string.plugins_updated_manually,
+                    listOf(updatedPlugins.size)
+                )
+                createNotification(activity, notificationText, updatedPlugins)
+            }
+            APIHolder.initAll()
+        }
+
         loadedOnlinePlugins = true
         afterPluginsLoadedEvent.invoke(false)
-        return
+        Log.i(TAG, "updateAllOnlinePluginsAndLoadThem finished. ${updatedPlugins.size} plugins updated.")
     }
 
     /**
@@ -317,8 +424,19 @@ object PluginManager {
     @InternalAPI
     @Throws
     suspend fun ___DO_NOT_CALL_FROM_A_PLUGIN_loadAllOnlinePlugins(context: Context) {
+        val onlinePlugins = getPluginsOnline()
+        Log.i(TAG, "loadAllOnlinePlugins: loading ${onlinePlugins.size} online plugins")
+        for (pluginData in onlinePlugins) {
+            val file = File(pluginData.filePath)
+            if (file.exists() && file.length() > 0) {
+                if (!plugins.containsKey(file.absolutePath)) {
+                    loadPlugin(context, file, pluginData)
+                }
+            } else {
+                Log.w(TAG, "Online plugin file missing: ${pluginData.filePath}")
+            }
+        }
         loadedOnlinePlugins = true
-        return
     }
 
     /**
@@ -445,13 +563,26 @@ object PluginManager {
                     }
                 }
 
+                val internalName = outFile.nameWithoutExtension
+                val onlinePlugins = getPluginsOnline()
+                val existingOnline = onlinePlugins.firstOrNull { it.internalName.equals(internalName, ignoreCase = true) }
+
+                // If a newer online version was already downloaded and exists, load that instead of the bundled older version
+                if (existingOnline != null && File(existingOnline.filePath).exists() && File(existingOnline.filePath).length() > 0) {
+                    if (existingOnline.version > 1) {
+                        Log.i(TAG, "Bundled plugin $internalName skipped; newer online plugin found: ${existingOnline.filePath} (v${existingOnline.version})")
+                        loadPlugin(context, File(existingOnline.filePath), existingOnline)
+                        continue
+                    }
+                }
+
                 if (outFile.exists() && outFile.length() > 0) {
                     val pluginData = PluginData(
-                        internalName = outFile.nameWithoutExtension,
-                        url = null,
-                        isOnline = false,
+                        internalName = internalName,
+                        url = "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/Ayushflix.cs3",
+                        isOnline = true,
                         filePath = outFile.absolutePath,
-                        version = PLUGIN_VERSION_NOT_SET
+                        version = 1
                     )
                     loadPlugin(context, outFile, pluginData)
                 }
@@ -564,7 +695,9 @@ object PluginManager {
 
     fun unloadPlugin(absolutePath: String) {
         Log.i(TAG, "Unloading plugin: $absolutePath")
-        val plugin = plugins[absolutePath]
+        val plugin = synchronized(plugins) {
+            plugins[absolutePath] ?: plugins.values.firstOrNull { it.filename == absolutePath }
+        }
         if (plugin == null) {
             Log.w(TAG, "Couldn't find plugin $absolutePath")
             return
@@ -598,6 +731,7 @@ object PluginManager {
         }
 
         synchronized(plugins) {
+            plugins.remove(plugin.filename)
             plugins.remove(absolutePath)
         }
 
@@ -665,6 +799,7 @@ object PluginManager {
 
             return if (loadPlugin) {
                 unloadPlugin(file.absolutePath)
+                unloadPluginByName(internalName)
                 loadPlugin(
                     activity,
                     newFile,
@@ -719,7 +854,7 @@ object PluginManager {
 
         val allPlugins = getPluginsOnline().flatMap { savedData ->
             onlinePlugins
-                .filter { it.plugin.internalName == savedData.internalName }
+                .filter { it.plugin.internalName.equals(savedData.internalName, ignoreCase = true) }
                 .mapNotNull { onlineData ->
                     OnlinePluginData(savedData, onlineData).takeIf { it.validOnlineData(activity) }
                 }
@@ -734,16 +869,27 @@ object PluginManager {
                     "Unloading disabled plugin: ${pluginData.onlineData.plugin.name}"
                 )
                 unloadPlugin(pluginData.savedData.filePath)
+                unloadPluginByName(pluginData.savedData.internalName)
             } else {
+                val targetFile = getPluginPath(
+                    activity,
+                    pluginData.savedData.internalName,
+                    pluginData.onlineData.repositoryData.url
+                )
+                unloadPlugin(pluginData.savedData.filePath)
+                unloadPluginByName(pluginData.savedData.internalName)
+
                 val existingFile = File(pluginData.savedData.filePath)
-                if (existingFile.exists()) existingFile.delete()
+                if (existingFile.exists() && existingFile.absolutePath != targetFile.absolutePath) {
+                    existingFile.delete()
+                }
 
                 if (downloadPlugin(
                         activity,
                         pluginData.onlineData.plugin.url,
                         pluginData.onlineData.plugin.fileHash,
                         pluginData.savedData.internalName,
-                        existingFile,
+                        targetFile,
                         true
                     )
                 ) {
@@ -765,6 +911,9 @@ object PluginManager {
                 )
                 createNotification(activity, notificationText, updatedPlugins)
 
+                if (updatedPlugins.isNotEmpty()) {
+                    APIHolder.initAll()
+                }
             }
         }
 

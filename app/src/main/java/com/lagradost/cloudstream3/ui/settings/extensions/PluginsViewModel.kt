@@ -68,7 +68,9 @@ class PluginsViewModel : ViewModel() {
             pluginName: String,
             repositoryUrl: String
         ): Boolean {
-            return getPluginPath(context, pluginName, repositoryUrl).exists()
+            if (getPluginPath(context, pluginName, repositoryUrl).exists()) return true
+            val online = PluginManager.getPluginsOnline()
+            return online.any { it.internalName.equals(pluginName, ignoreCase = true) && File(it.filePath).exists() }
         }
 
         private suspend fun getPlugins(
@@ -165,11 +167,19 @@ class PluginsViewModel : ViewModel() {
         if (activity == null) return@ioSafe
         val (_, repositoryData, metadata) = pluginWrapper
 
-        val file = if (isLocal) File(pluginWrapper.plugin.url) else getPluginPath(
-            activity,
-            pluginWrapper.plugin.internalName,
-            pluginWrapper.repositoryData.url
-        )
+        val file = if (isLocal) File(pluginWrapper.plugin.url) else {
+            val repoPath = getPluginPath(
+                activity,
+                pluginWrapper.plugin.internalName,
+                pluginWrapper.repositoryData.url
+            )
+            if (repoPath.exists()) repoPath else {
+                val installed = PluginManager.getPluginsOnline().firstOrNull {
+                    it.internalName.equals(pluginWrapper.plugin.internalName, ignoreCase = true) && File(it.filePath).exists()
+                }
+                installed?.let { File(it.filePath) } ?: repoPath
+            }
+        }
 
         val (success, message) = if (file.exists()) {
             PluginManager.deletePlugin(file) to R.string.plugin_deleted
