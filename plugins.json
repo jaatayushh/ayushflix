@@ -3,7 +3,7 @@
     "name": "Ayushflix",
     "internalName": "Ayushflix",
     "pluginClassName": "com.ayushflix.AyushflixPlugin",
-    "version": 4,
+    "version": 5,
     "url": "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/Ayushflix.cs3",
     "fileSize": 275584,
     "status": 1,
