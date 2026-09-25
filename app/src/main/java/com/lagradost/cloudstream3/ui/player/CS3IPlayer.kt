@@ -378,23 +378,40 @@ class CS3IPlayer : IPlayer {
             ?: return
     }
 
-    override fun setPreferredAudioTrack(trackLanguage: String?, id: String?, formatIndex: Int?) {
+    override fun setPreferredAudioTrack(
+        trackLanguage: String?,
+        id: String?,
+        formatIndex: Int?,
+        groupIndex: Int?,
+    ) {
         if (!trackLanguage.isNullOrBlank()) {
             preferredAudioTrackLanguage = trackLanguage
         }
         val audioGroups = exoPlayer?.currentTracks?.groups?.filter { it.type == TRACK_TYPE_AUDIO } ?: emptyList()
-        val matchedGroup = audioGroups.firstNotNullOfOrNull { group ->
-            val formats = group.getFormats()
-            val match = formats.find { (format, fIndex) ->
-                (id != null && format.id == id && (formatIndex == null || fIndex == formatIndex)) ||
-                (id == null && formatIndex != null && fIndex == formatIndex && (trackLanguage == null || format.language == trackLanguage)) ||
-                (id == null && formatIndex == null && trackLanguage != null && (format.language?.equals(trackLanguage, ignoreCase = true) == true || format.label?.contains(trackLanguage, ignoreCase = true) == true))
+
+        val matchedGroup: Pair<Tracks.Group, Int>? = if (groupIndex != null && groupIndex in audioGroups.indices) {
+            val group = audioGroups[groupIndex]
+            val fIndex = formatIndex ?: 0
+            if (fIndex in 0 until group.mediaTrackGroup.length) {
+                group to fIndex
+            } else {
+                group to 0
             }
-            match?.let { group to it.second }
+        } else {
+            audioGroups.firstNotNullOfOrNull { group ->
+                val formats = group.getFormats(onlySupported = false)
+                val match = formats.find { (format, fIndex) ->
+                    (id != null && format.id == id && (formatIndex == null || fIndex == formatIndex)) ||
+                    (id == null && formatIndex != null && fIndex == formatIndex && (trackLanguage == null || format.language == trackLanguage)) ||
+                    (id == null && formatIndex == null && trackLanguage != null && (format.language?.equals(trackLanguage, ignoreCase = true) == true || format.label?.contains(trackLanguage, ignoreCase = true) == true))
+                }
+                match?.let { group to it.second }
+            }
         }
 
         val builder = exoPlayer?.trackSelectionParameters?.buildUpon() ?: return
         builder.clearOverridesOfType(TRACK_TYPE_AUDIO)
+        builder.setTrackTypeDisabled(TRACK_TYPE_AUDIO, false)
         if (matchedGroup != null) {
             builder.setOverrideForType(
                 TrackSelectionOverride(
@@ -410,23 +427,23 @@ class CS3IPlayer : IPlayer {
     }
 
     /**
-     * Gets all supported formats in a list
+     * Gets all formats in a list
      * */
-    private fun List<Tracks.Group>.getFormats(): List<Pair<Format, Int>> {
+    private fun List<Tracks.Group>.getFormats(onlySupported: Boolean = false): List<Pair<Format, Int>> {
         return this.flatMap {
-            it.getFormats()
+            it.getFormats(onlySupported)
         }
     }
 
-    private fun Tracks.Group.getFormats(): List<Pair<Format, Int>> {
+    private fun Tracks.Group.getFormats(onlySupported: Boolean = false): List<Pair<Format, Int>> {
         return (0 until this.mediaTrackGroup.length).mapNotNull { i ->
-            if (this.isSupported)
+            if (!onlySupported || this.isTrackSupported(i))
                 this.mediaTrackGroup.getFormat(i) to i
             else null
         }
     }
 
-    private fun Format.toAudioTrack(formatIndex: Int?): AudioTrack {
+    private fun Format.toAudioTrack(formatIndex: Int?, groupIndex: Int? = null): AudioTrack {
         return AudioTrack(
             this.id,
             this.label,
@@ -434,6 +451,7 @@ class CS3IPlayer : IPlayer {
             this.sampleMimeType,
             this.channelCount,
             formatIndex ?: 0,
+            groupIndex,
         )
     }
 
@@ -464,9 +482,9 @@ class CS3IPlayer : IPlayer {
             .map { it.first.toVideoTrack() }
         var currentAudioTrack: AudioTrack? = null
         val audioTracks = allTrackGroups.filter { it.type == TRACK_TYPE_AUDIO }
-            .flatMap { group ->
-                group.getFormats().map { (format, formatIndex) ->
-                    val audioTrack = format.toAudioTrack(formatIndex)
+            .flatMapIndexed { groupIndex, group ->
+                group.getFormats(onlySupported = false).map { (format, formatIndex) ->
+                    val audioTrack = format.toAudioTrack(formatIndex, groupIndex)
                     if (group.isTrackSelected(formatIndex)) {
                         currentAudioTrack = audioTrack
                     }
@@ -871,7 +889,8 @@ class CS3IPlayer : IPlayer {
                 // This will not force higher quality videos to fail
                 // but will make the m3u8 pick the correct preferred
                 .setMaxVideoSize(Int.MAX_VALUE, maxVideoHeight ?: Int.MAX_VALUE)
-                .setPreferredAudioLanguage("hi")
+                .setPreferredAudioLanguage(preferredAudioTrackLanguage ?: "hi")
+                .setExceedRendererCapabilitiesIfNecessary(true)
                 .build()
             return trackSelector
         }
@@ -1107,10 +1126,11 @@ class CS3IPlayer : IPlayer {
                         1 -> false to false // HW, aka off
                         // -1 = automatic
                         // On Windows WSA, latte.hevc.decoder drops frames on 1080p 10-bit HEVC, so default to SW+HW
+                        // On all devices (phones, TVs, emulators), enable HW+SW fallback so multi-audio codecs (AC3, EAC3, DTS) work
                         else -> if (isWsa) {
                             true to true
                         } else {
-                            isLayout(PHONE or EMULATOR) to false
+                            true to false
                         }
                     }
 
@@ -1125,8 +1145,11 @@ class CS3IPlayer : IPlayer {
                             )
                         }
                     } else {
-                        // no nextlib = EXTENSION_RENDERER_MODE_OFF
-                        DefaultRenderersFactory(context)
+                        // Even when HW is forced, allow NextLib extension decoders as fallback for codecs lacking HW support
+                        FixedNextRenderersFactory(context).apply {
+                            setEnableDecoderFallback(true)
+                            setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+                        }
                     }
 
                     val style = CustomDecoder.style
@@ -1809,7 +1832,17 @@ class CS3IPlayer : IPlayer {
             val mime = when (link.type) {
                 ExtractorLinkType.M3U8 -> MimeTypes.APPLICATION_M3U8
                 ExtractorLinkType.DASH -> MimeTypes.APPLICATION_MPD
-                ExtractorLinkType.VIDEO -> MimeTypes.VIDEO_MP4
+                ExtractorLinkType.VIDEO -> {
+                    val urlLower = link.url.lowercase()
+                    when {
+                        urlLower.contains(".m3u8") -> MimeTypes.APPLICATION_M3U8
+                        urlLower.contains(".mpd") -> MimeTypes.APPLICATION_MPD
+                        urlLower.contains(".mkv") -> MimeTypes.VIDEO_MATROSKA
+                        urlLower.contains(".webm") -> MimeTypes.VIDEO_WEBM
+                        urlLower.contains(".ts") -> MimeTypes.VIDEO_MP2T
+                        else -> MimeTypes.VIDEO_MP4
+                    }
+                }
                 ExtractorLinkType.TORRENT, ExtractorLinkType.MAGNET -> {
                     // we check settings first, todo cleanup
                     val default = TvType.entries.toTypedArray()

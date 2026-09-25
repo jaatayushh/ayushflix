@@ -224,6 +224,9 @@ class GeneratorPlayer : FullScreenPlayer() {
 
     private fun isSameAudioTrack(a: AudioTrack?, b: AudioTrack?): Boolean {
         if (a == null || b == null) return false
+        if (a.groupIndex != null && b.groupIndex != null) {
+            return a.groupIndex == b.groupIndex && a.formatIndex == b.formatIndex
+        }
         if (a.id != null && b.id != null) {
             return a.id == b.id && a.formatIndex == b.formatIndex
         }
@@ -234,7 +237,7 @@ class GeneratorPlayer : FullScreenPlayer() {
     override fun onTracksInfoChanged() {
         val tracks = player.getVideoTracks()
         playerBinding?.playerTracksBtt?.isVisible =
-            tracks.allVideoTracks.size > 1 || tracks.allAudioTracks.size > 1
+            tracks.allVideoTracks.size > 1 || tracks.allAudioTracks.isNotEmpty()
 
         // If the user explicitly chose an audio track during this playback session, do not override their intent!
         if (userSelectedAudioTrack) {
@@ -253,7 +256,12 @@ class GeneratorPlayer : FullScreenPlayer() {
 
         if (preferredTrack != null) {
             if (!isSameAudioTrack(tracks.currentAudioTrack, preferredTrack)) {
-                player.setPreferredAudioTrack(preferredTrack.language, preferredTrack.id, preferredTrack.formatIndex)
+                player.setPreferredAudioTrack(
+                    preferredTrack.language,
+                    preferredTrack.id,
+                    preferredTrack.formatIndex,
+                    preferredTrack.groupIndex,
+                )
             }
         } else {
             // Default to Hindi audio track if available (Castle TV / multi-audio content)
@@ -263,7 +271,12 @@ class GeneratorPlayer : FullScreenPlayer() {
                 it.label?.contains("hindi", ignoreCase = true) == true
             }
             if (hindiTrack != null && !isSameAudioTrack(tracks.currentAudioTrack, hindiTrack)) {
-                player.setPreferredAudioTrack(hindiTrack.language, hindiTrack.id, hindiTrack.formatIndex)
+                player.setPreferredAudioTrack(
+                    hindiTrack.language,
+                    hindiTrack.id,
+                    hindiTrack.formatIndex,
+                    hindiTrack.groupIndex,
+                )
             }
         }
         updatePlayerInfo()
@@ -1473,7 +1486,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                 val audioList = binding.autoTracksList
 
                 binding.videoTracksHolder.isVisible = currentVideoTracks.size > 1
-                binding.audioTracksHolder.isVisible = currentAudioTracks.size > 1
+                binding.audioTracksHolder.isVisible = currentAudioTracks.isNotEmpty()
 
                 fun dismiss() {
                     if (isPlaying) {
@@ -1521,19 +1534,29 @@ class GeneratorPlayer : FullScreenPlayer() {
                     ArrayAdapter<String>(ctx, R.layout.sort_bottom_single_choice)
 
                 audioArrayAdapter.addAll(
-                    currentAudioTracks.mapIndexed { _, track ->
+                    currentAudioTracks.mapIndexed { index, track ->
+                        val rawLanguage = track.language?.trim()
+                        val parsedLanguage = if (!rawLanguage.isNullOrBlank() && !rawLanguage.equals("und", ignoreCase = true)) {
+                            fromTagToLanguageName(rawLanguage)
+                                ?: fromTagToLanguageName(
+                                    rawLanguage.replace('_', '-').substringBefore('-').lowercase()
+                                )
+                                ?: rawLanguage
+                        } else null
 
                         val language = (
-                                track.language?.trim()?.let { raw ->
-                                    fromTagToLanguageName(raw)
-                                        ?: fromTagToLanguageName(
-                                            raw.replace('_', '-').substringBefore('-').lowercase()
-                                        )
-                                        ?: raw
-                                }
-                                    ?: track.label
-                                    ?: "Audio"
-                                ).replaceFirstChar { it.uppercaseChar() }
+                            parsedLanguage
+                                ?: track.label?.takeIf { it.isNotBlank() }
+                                ?: "Track ${index + 1}"
+                        ).replaceFirstChar { it.uppercaseChar() }
+
+                        val labelExtra = track.label?.takeIf {
+                            it.isNotBlank() &&
+                            !it.equals(language, ignoreCase = true) &&
+                            !it.equals(rawLanguage, ignoreCase = true)
+                        }
+
+                        val languageDisplay = if (labelExtra != null) "$language ($labelExtra)" else language
 
                         val codec = audioCodecName(track.sampleMimeType)
 
@@ -1550,13 +1573,10 @@ class GeneratorPlayer : FullScreenPlayer() {
                         }
 
                         listOfNotNull(
-                            language.takeIf { it.isNotBlank() }
-                                ?.replaceFirstChar { it.uppercaseChar() },
+                            languageDisplay.takeIf { it.isNotBlank() },
                             channels.takeIf { it.isNotBlank() },
                             codec.takeIf { it.isNotBlank() }?.uppercase()
                         ).joinToString(" • ")
-
-
                     }
                 )
 
@@ -1587,6 +1607,7 @@ class GeneratorPlayer : FullScreenPlayer() {
                             currentTrack.language,
                             currentTrack.id,
                             currentTrack.formatIndex,
+                            currentTrack.groupIndex,
                         )
                     }
 
