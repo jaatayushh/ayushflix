@@ -2,10 +2,10 @@
   {
     "name": "Ayushflix",
     "internalName": "Ayushflix",
-    "pluginClassName": "com.ayushflix.AyushflixPlugin",
-    "version": 7,
+    "pluginClassName": "com.cncverse.CastleTvProviderPlugin",
+    "version": 8,
     "url": "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/Ayushflix.cs3",
-    "fileSize": 275584,
+    "fileSize": 88011,
     "status": 1,
     "types": [
       "TvType.Movie",
@@ -17,6 +17,6 @@
     "authors": [
       "Ayush"
     ],
-    "description": "Unified all-in-one Ayushflix extension combining TV scrapers (Netflix, Prime Video, Hotstar, Disney), Mobile scrapers (NetflixM, PrimeVideoM, HotstarM, DisneyM), and Castle TV with Hindi default audio."
+    "description": "Official Castle TV extension with multi-language audio streams and high definition playback."
   }
 ]

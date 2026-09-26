@@ -225,19 +225,17 @@ jobs:
             **Universal update released with auto update enabled**
 
             ### Android Client (Mobile & TV)
-            - **Audio Track Selection Fix**: Resolved issue where audio track selection remained stuck on Hindi; user track and language intent in the tracks dialog is now fully respected.
+            - **MovieBox with Family Mode ON**: High-speed, ad-free streaming with Family Safe filtering strictly enabled.
+            - **Castle TV Included**: Available on both Mobile and TV with multi-language audio streams.
             - **Liquid Glass Navigation Pill**: Redesigned floating bottom navigation pill with frosted glass indicator and crystal-clear icons.
             - **Who's Watching?**: Netflix-style startup profile selection screen with animated avatars.
             - **Enhanced Top Match**: Enlarged card layout with high-resolution poster display and instant play button.
             - **Hero Banner Auto-Advance**: Seamless auto-advance across featured titles.
             - **Universal TV & Mobile Device Routing**: Dynamically detects TV vs Mobile devices.
-            - **Castle TV Included**: Available on both Mobile and TV with default Hindi audio priority.
-            - **Dynamic Playback Source Branding**: Streams dynamically branded (`Ayushflix - Netflix`, `Ayushflix - Prime Video`, `Ayushflix - Hotstar`, `Ayushflix - Disney`, and `Ayushflix` for Castle TV).
-            - **Auto-Update Enabled**: Built-in background auto-sync directly from NivinCNC's official repository.
 
             ### Windows Desktop Client
             - **Native High-Performance MPV Video Player**: Built-in Direct3D / JNI playback engine with libmpv.
-            - **All Scrapers Pre-Bundled**: CNC Verse, CNC Verse Mobile, Castle TV, and unified Ayushflix extension pre-installed out-of-the-box.
+            - **Pre-Bundled Built-in Providers**: MovieBox (Family Safe Mode) and Castle TV pre-installed and configured out-of-the-box.
             - **Standalone Installer**: Clean Windows installation package (`Ayushflix-Setup.exe`).
             - **Auto-Updating Repository**: Auto-syncs scraper extensions directly from `jaatayushh/ayushflix-extention`.
           files: release_files/*
