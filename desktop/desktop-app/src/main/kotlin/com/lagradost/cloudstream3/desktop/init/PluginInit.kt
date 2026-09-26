@@ -21,7 +21,6 @@ fun initProviders() {
         TmdbProvider(),
         TraktProvider(),
         CrossTmdbProvider(),
-        com.lagradost.cloudstream3.desktop.builtin.MovieBoxProvider(),
     )
     synchronized(APIHolder.allProviders) {
         builtIns.forEach { provider ->

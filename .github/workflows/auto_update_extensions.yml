@@ -39,7 +39,9 @@ jobs:
           echo "Fetching latest builds from NivinCNC builds branch..."
           curl -sL "https://raw.githubusercontent.com/NivinCNC/builds/master/plugins.json" -o upstream_plugins.json || true
           
-          # Download Castle TV
+          # Download CNC Verse TV and Mobile
+          curl -sL "https://raw.githubusercontent.com/NivinCNC/builds/master/CNC%20Verse.cs3" -o "CNC Verse.cs3" || true
+          curl -sL "https://raw.githubusercontent.com/NivinCNC/builds/master/CNC%20Verse%20Mobile.cs3" -o "CNC Verse Mobile.cs3" || true
           curl -sL "https://raw.githubusercontent.com/NivinCNC/builds/master/CastleTvProvider.cs3" -o "CastleTvProvider.cs3" || true
           cd ..
 
@@ -57,20 +59,16 @@ jobs:
               new_ver = current_ver + 1
               data[0]["version"] = new_ver
               
+              # Check if updated .cs3 files were downloaded
+              tv_cs3 = "temp_sync/CNC Verse.cs3"
+              if os.path.exists(tv_cs3) and os.path.getsize(tv_cs3) > 1000:
+                  os.replace(tv_cs3, "app/src/main/assets/plugins/CNC Verse.cs3")
+              mob_cs3 = "temp_sync/CNC Verse Mobile.cs3"
+              if os.path.exists(mob_cs3) and os.path.getsize(mob_cs3) > 1000:
+                  os.replace(mob_cs3, "app/src/main/assets/plugins/CNC Verse Mobile.cs3")
               castle_cs3 = "temp_sync/CastleTvProvider.cs3"
               if os.path.exists(castle_cs3) and os.path.getsize(castle_cs3) > 1000:
-                  with zipfile.ZipFile(castle_cs3, 'r') as cz:
-                      castle_dex = cz.read('classes.dex')
-                  manifest = {
-                      "name": "Castle TV",
-                      "pluginClassName": "com.cncverse.CastleTvProviderPlugin",
-                      "version": 1,
-                      "requiresResources": False
-                  }
-                  for p in ["Ayushflix.cs3", "app/src/main/assets/plugins/Ayushflix.cs3", "desktop/desktop-app/src/main/resources/plugins/Ayushflix.cs3"]:
-                      with zipfile.ZipFile(p, 'w', compression=zipfile.ZIP_DEFLATED) as out_z:
-                          out_z.writestr("manifest.json", json.dumps(manifest))
-                          out_z.writestr("classes.dex", castle_dex)
+                  os.replace(castle_cs3, "app/src/main/assets/plugins/CastleTvProvider.cs3")
 
               # Update fileSize in plugins.json
               if os.path.exists("Ayushflix.cs3"):

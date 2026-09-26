@@ -1519,25 +1519,27 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             }
         } else if (lastError == null) {
             ioSafe {
-                val movieBox = com.lagradost.cloudstream3.builtin.MovieBoxProvider()
-                com.lagradost.cloudstream3.builtin.MovieBoxProvider.context = this@MainActivity
-                APIHolder.allProviders.withLock {
-                    if (APIHolder.allProviders.none { it.name == movieBox.name }) {
-                        APIHolder.allProviders.add(movieBox)
-                    }
-                }
-                APIHolder.addPluginMapping(movieBox)
                 PluginManager.loadBundledPlugins(this@MainActivity)
+                syncNetmirrorCookie(this@MainActivity)
                 APIHolder.initAll()
 
-                val defaultProvider = APIHolder.allProviders.firstOrNull { it.name.equals("MovieBox", ignoreCase = true) }?.name
-                    ?: APIHolder.allProviders.firstOrNull { it.hasMainPage }?.name
-                    ?: "MovieBox"
+                val isTv = com.lagradost.cloudstream3.ui.settings.Globals.isLayout(com.lagradost.cloudstream3.ui.settings.Globals.TV or com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR) ||
+                           com.lagradost.cloudstream4.compose.DeviceLayout.isAutoTv(this@MainActivity)
+
+                val defaultProvider = if (isTv) {
+                    APIHolder.allProviders.firstOrNull { it.name.equals("Netflix", ignoreCase = true) || it.name.equals("Netflix Mirror", ignoreCase = true) }?.name
+                        ?: APIHolder.allProviders.firstOrNull { it.hasMainPage }?.name
+                        ?: "Netflix Mirror"
+                } else {
+                    APIHolder.allProviders.firstOrNull { it.name.equals("NetflixM", ignoreCase = true) || it.name.equals("Netflixm", ignoreCase = true) }?.name
+                        ?: APIHolder.allProviders.firstOrNull { it.hasMainPage }?.name
+                        ?: "NetflixM"
+                }
 
                 if (DataStoreHelper.currentHomePage.isNullOrBlank() ||
-                    DataStoreHelper.currentHomePage == "Netflix" ||
-                    DataStoreHelper.currentHomePage == "Netflix Mirror" ||
-                    DataStoreHelper.currentHomePage?.equals("NetflixM", ignoreCase = true) == true ||
+                    DataStoreHelper.currentHomePage == "MovieBox" ||
+                    (!isTv && (DataStoreHelper.currentHomePage == "Netflix" || DataStoreHelper.currentHomePage == "Netflix Mirror")) ||
+                    (isTv && DataStoreHelper.currentHomePage?.equals("NetflixM", ignoreCase = true) == true) ||
                     APIHolder.allProviders.none { it.name == DataStoreHelper.currentHomePage }
                 ) {
                     DataStoreHelper.currentHomePage = defaultProvider
