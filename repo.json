@@ -1,8 +1,13 @@
 {
   "name": "Ayushflix Repository",
+  "id": "com.ayushflix.repo",
+  "packageName": "com.ayushflix.repo",
   "description": "Official repository for Ayushflix scrapers and streaming providers.",
   "manifestVersion": 1,
   "pluginLists": [
+    "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/plugins.json"
+  ],
+  "plugins": [
     "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/plugins.json"
   ]
 }
