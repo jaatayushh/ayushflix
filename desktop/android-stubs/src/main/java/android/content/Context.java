@@ -83,6 +83,9 @@ public class Context {
         if (WINDOW_SERVICE.equals(name)) {
             return windowManager;
         }
+        if ("uimode".equals(name)) {
+            return new android.app.UiModeManager();
+        }
         return null;
     }
 

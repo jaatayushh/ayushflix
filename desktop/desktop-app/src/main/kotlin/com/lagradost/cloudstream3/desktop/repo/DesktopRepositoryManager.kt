@@ -162,8 +162,18 @@ object DesktopRepositoryManager {
 
     private fun writeRepositoriesToDisk(repos: List<RepositoryData>) {
         reposFile.parentFile?.mkdirs()
-        PluginNetworkClient.mapper.writeValue(reposFile, repos)
-        _savedRepositories.value = repos
+        val listToWrite = if (repos.isEmpty()) {
+            listOf(
+                RepositoryData(
+                    name = "Ayushflix Extension Repository",
+                    url = "https://raw.githubusercontent.com/jaatayushh/ayushflix/main/plugins.json"
+                )
+            )
+        } else {
+            repos
+        }
+        PluginNetworkClient.mapper.writeValue(reposFile, listToWrite)
+        _savedRepositories.value = listToWrite
     }
 
     private fun normalizeRepositoryData(data: RepositoryData): RepositoryData {

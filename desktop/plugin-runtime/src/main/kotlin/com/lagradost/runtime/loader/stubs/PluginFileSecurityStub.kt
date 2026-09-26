@@ -87,6 +87,18 @@ object PluginFileSecurityStub {
             return target.absolutePath
         }
 
+        // Allow app filesDir, cacheDir, or system temp directory
+        val allowedAppDirs = listOfNotNull(
+            try { android.content.DesktopContextProvider.context.filesDir?.canonicalFile } catch (_: Throwable) { null },
+            try { android.content.DesktopContextProvider.context.cacheDir?.canonicalFile } catch (_: Throwable) { null },
+            try { File(System.getProperty("java.io.tmpdir")).canonicalFile } catch (_: Throwable) { null },
+        )
+        for (dir in allowedAppDirs) {
+            if (isPathInside(target, dir)) {
+                return target.absolutePath
+            }
+        }
+
         // Check if inside any explicitly granted paths for this plugin
         val pluginGrants = grantedPaths[pluginName]
         if (pluginGrants != null) {

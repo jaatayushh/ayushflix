@@ -48,19 +48,43 @@ private fun extractBundledPlugins() {
         for (old in legacy) {
             try { java.io.File(extensionsDir, old).delete() } catch (_: Exception) {}
         }
+        // Clean up any old legacy plugins or corrupt cached jars (< 50 KB)
+        try {
+            extensionsDir.walkTopDown()
+                .filter { it.isFile && it.name.equals("Ayushflix-jvm.jar", ignoreCase = true) }
+                .forEach { jar ->
+                    if (jar.length() < 50_000L) {
+                        AppLogger.i("Deleting outdated/incomplete cached jar: ${jar.absolutePath}")
+                        jar.delete()
+                    }
+                }
+        } catch (_: Exception) {}
+
         val bundled = listOf(
             "Ayushflix.cs3"
         )
         for (pluginName in bundled) {
             val target = java.io.File(extensionsDir, pluginName)
-            if (!target.exists()) {
-                val stream = ExtensionLoader::class.java.getResourceAsStream("/plugins/$pluginName")
-                    ?: ExtensionLoader::class.java.classLoader.getResourceAsStream("plugins/$pluginName")
+            val shouldExtract = !target.exists() || target.length() == 0L
+            if (shouldExtract) {
+                val stream = DesktopRepositoryManager::class.java.getResourceAsStream("/plugins/$pluginName")
+                    ?: DesktopRepositoryManager::class.java.classLoader?.getResourceAsStream("plugins/$pluginName")
+                    ?: Thread.currentThread().contextClassLoader?.getResourceAsStream("plugins/$pluginName")
+                    ?: ExtensionLoader::class.java.getResourceAsStream("/plugins/$pluginName")
+                    ?: ExtensionLoader::class.java.classLoader?.getResourceAsStream("plugins/$pluginName")
                 if (stream != null) {
                     stream.use { input ->
                         java.nio.file.Files.copy(input, target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                     }
                     AppLogger.i("Extracted bundled plugin: $pluginName to ${target.absolutePath}")
+                } else {
+                    // Fallback: check workspace or app directory
+                    val fallbackFile = java.io.File("plugins/$pluginName").takeIf { it.exists() }
+                        ?: java.io.File(pluginName).takeIf { it.exists() }
+                    if (fallbackFile != null) {
+                        java.nio.file.Files.copy(fallbackFile.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                        AppLogger.i("Copied bundled plugin from local path: ${fallbackFile.absolutePath} to ${target.absolutePath}")
+                    }
                 }
             }
         }

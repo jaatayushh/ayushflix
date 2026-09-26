@@ -114,8 +114,8 @@ object ExtensionLoader {
 
             // Check if archive already contains compiled JVM .class bytecode
             val hasJvmClasses = zip.entries().asSequence().any { it.name.endsWith(".class") }
+            val dexEntries = zip.entries().asSequence().filter { it.name.endsWith(".dex") }.toList()
 
-            val dexEntry = zip.getEntry("classes.dex")
             if (hasJvmClasses) {
                 val secureJar = if (jarFile.name.endsWith("-secure.jar")) {
                     jarFile
@@ -135,43 +135,93 @@ object ExtensionLoader {
                     AppLogger.i("[PluginLoader] Using cached Secure JVM JAR: ${secureJar.name}")
                 }
                 jarToLoad = secureJar
-            } else if (dexEntry != null) {
+            } else if (dexEntries.isNotEmpty()) {
                 val convertedJar = File(jarFile.parentFile, jarFile.nameWithoutExtension + "-jvm.jar")
-                val isCacheValid = convertedJar.exists() && convertedJar.lastModified() >= jarFile.lastModified() &&
-                    (pluginClassName == null || checkJarHasClass(convertedJar, pluginClassName!!))
+                val isCacheValid = convertedJar.exists() &&
+                    convertedJar.lastModified() >= jarFile.lastModified() &&
+                    (pluginClassName == null || checkJarHasClass(convertedJar, pluginClassName!!)) &&
+                    (dexEntries.size <= 1 || checkJarHasProviders(convertedJar)) &&
+                    (jarFile.length() < 100_000L || convertedJar.length() > 50_000L)
 
                 if (!isCacheValid) {
-                    AppLogger.i("[PluginLoader] Transpiling Dalvik DEX -> JVM JAR for ${jarFile.name}...")
-                    val dexFile = File(jarFile.parentFile, jarFile.nameWithoutExtension + ".dex")
+                    AppLogger.i("[PluginLoader] Transpiling Dalvik DEX (${dexEntries.size} dex entries) -> JVM JAR for ${jarFile.name}...")
+                    val tempFiles = mutableListOf<File>()
+                    val transpiledSubJars = mutableListOf<File>()
                     try {
-                        zip.getInputStream(dexEntry).use { input ->
-                            Files.copy(input, dexFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                        }
+                        for ((idx, dexEntry) in dexEntries.withIndex()) {
+                            val dexName = dexEntry.name.substringAfterLast('/').removeSuffix(".dex")
+                            val tempDex = File(jarFile.parentFile, "${jarFile.nameWithoutExtension}_temp_${idx}_$dexName.dex")
+                            val tempJar = File(jarFile.parentFile, "${jarFile.nameWithoutExtension}_temp_${idx}_$dexName.jar")
+                            tempFiles.add(tempDex)
+                            tempFiles.add(tempJar)
 
-                        try {
-                            AppLogger.i("[PluginLoader] Starting Dex2Jar translation...")
-                            Dex2jarCmd().doMain("-f", dexFile.absolutePath, "-o", convertedJar.absolutePath)
-                            AppLogger.i("[PluginLoader] Dex2Jar translation finished.")
-                        } catch (t: Throwable) {
-                            AppLogger.e("[PluginLoader] Dex2jarCmd().doMain failed. Trying fallback...", t)
+                            zip.getInputStream(dexEntry).use { input ->
+                                Files.copy(input, tempDex.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                            }
+
                             try {
-                                Dex2jarCmd.main("-f", dexFile.absolutePath, "-o", convertedJar.absolutePath)
-                                AppLogger.i("[PluginLoader] Dex2Jar fallback translation finished.")
-                            } catch (t2: Throwable) {
-                                AppLogger.e("[PluginLoader] Dex2Jar fallback completely failed!", t2)
-                                convertedJar.delete()
-                                throw IllegalStateException("Failed to transpile Dalvik DEX to JVM bytecode for ${jarFile.name}: ${t2.message}", t2)
+                                AppLogger.i("[PluginLoader] Transpiling $dexName (${dexEntry.name})...")
+                                Dex2jarCmd().doMain("-f", tempDex.absolutePath, "-o", tempJar.absolutePath)
+                            } catch (t: Throwable) {
+                                try {
+                                    Dex2jarCmd.main("-f", tempDex.absolutePath, "-o", tempJar.absolutePath)
+                                } catch (t2: Throwable) {
+                                    AppLogger.w("[PluginLoader] Dex2jar failed on $dexName: ${t2.message}")
+                                }
+                            }
+
+                            if (tempJar.exists() && tempJar.length() > 0L) {
+                                transpiledSubJars.add(tempJar)
                             }
                         }
 
-                        if (!convertedJar.exists() || convertedJar.length() == 0L) {
-                            convertedJar.delete()
-                            throw IllegalStateException("Dex2Jar translation finished but no valid JAR was produced at ${convertedJar.absolutePath}")
-                        } else {
-                            PluginBytecodeTransformer.transform(convertedJar)
+                        if (transpiledSubJars.isEmpty()) {
+                            throw IllegalStateException("Failed to transpile Dalvik DEX to JVM bytecode for ${jarFile.name}")
                         }
+
+                        val tempMergedJar = File(jarFile.parentFile, jarFile.nameWithoutExtension + "-jvm.tmp")
+                        tempFiles.add(tempMergedJar)
+
+                        val addedEntries = mutableSetOf<String>()
+                        java.util.zip.ZipOutputStream(java.io.FileOutputStream(tempMergedJar).buffered()).use { outZip ->
+                            // 1. Copy non-class resources from original zip (manifest.json, dex files, icons, etc.)
+                            val origEntries = zip.entries()
+                            while (origEntries.hasMoreElements()) {
+                                val origEntry = origEntries.nextElement()
+                                if (!origEntry.isDirectory && !origEntry.name.startsWith("META-INF/") && !origEntry.name.endsWith(".class")) {
+                                    if (addedEntries.add(origEntry.name)) {
+                                        outZip.putNextEntry(java.util.zip.ZipEntry(origEntry.name))
+                                        zip.getInputStream(origEntry).copyTo(outZip)
+                                        outZip.closeEntry()
+                                    }
+                                }
+                            }
+
+                            // 2. Merge all compiled classes from each transpiled sub-jar
+                            for (subJar in transpiledSubJars) {
+                                ZipFile(subJar).use { subZip ->
+                                    val subEntries = subZip.entries()
+                                    while (subEntries.hasMoreElements()) {
+                                        val entry = subEntries.nextElement()
+                                        if (!entry.isDirectory && !entry.name.startsWith("META-INF/")) {
+                                            if (addedEntries.add(entry.name)) {
+                                                outZip.putNextEntry(java.util.zip.ZipEntry(entry.name))
+                                                subZip.getInputStream(entry).copyTo(outZip)
+                                                outZip.closeEntry()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Files.move(tempMergedJar.toPath(), convertedJar.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                        AppLogger.i("[PluginLoader] Successfully transpiled & merged ${addedEntries.size} entries into ${convertedJar.name}")
+                        PluginBytecodeTransformer.transform(convertedJar)
                     } finally {
-                        try { dexFile.delete() } catch (_: Throwable) {}
+                        for (f in tempFiles) {
+                            try { f.delete() } catch (_: Throwable) {}
+                        }
                     }
                 } else {
                     AppLogger.i("[PluginLoader] Using cached JVM JAR: ${convertedJar.name}")
@@ -574,6 +624,61 @@ object ExtensionLoader {
         if (loader != null) {
             val names = classLoaderToClassNames[loader] ?: emptySet()
             synchronizePluginNetworkClients(loader, names)
+            ensureNestedProvidersRegistered(loader, pluginInstance.filename)
+        }
+    }
+
+    private fun ensureNestedProvidersRegistered(loader: ClassLoader, filename: String?) {
+        val nestedPlugins = listOf(
+            "com.horis.cncverse.CNCVersePlugin",
+            "com.cncverse.CastleTvProviderPlugin"
+        )
+        for (pluginName in nestedPlugins) {
+            try {
+                val pClass = loader.loadClass(pluginName)
+                val isAlreadyLoaded = plugins.values.any { it.javaClass.name == pluginName }
+                if (!isAlreadyLoaded) {
+                    val pInstance = pClass.getDeclaredConstructor().newInstance() as? BasePlugin
+                    if (pInstance != null) {
+                        pInstance.filename = filename
+                        if (pInstance is Plugin) {
+                            pInstance.load(DesktopContextProvider.context)
+                        } else {
+                            pInstance.load()
+                        }
+                        AppLogger.i("Proactively initialized nested plugin: $pluginName")
+                    }
+                }
+            } catch (_: Throwable) {}
+        }
+
+        // Direct fallback: ensure core providers from Ayushflix (CNCVerse & Castle TV) are registered
+        val directProviderClasses = listOf(
+            "com.horis.cncverse.NetflixMirrorProvider",
+            "com.horis.cncverse.PrimeVideoMirrorProvider",
+            "com.horis.cncverse.HotStarMirrorProvider",
+            "com.horis.cncverse.DisneyPlusProvider",
+            "com.horis.cncverse.DisneyStudioProvider",
+            "com.cncverse.CastleTvProvider"
+        )
+        for (providerClass in directProviderClasses) {
+            try {
+                val pClass = loader.loadClass(providerClass)
+                val exists = synchronized(com.lagradost.cloudstream3.APIHolder.allProviders) {
+                    com.lagradost.cloudstream3.APIHolder.allProviders.any { it.javaClass.name == providerClass }
+                }
+                if (!exists) {
+                    val providerInstance = pClass.getDeclaredConstructor().newInstance() as? com.lagradost.cloudstream3.MainAPI
+                    if (providerInstance != null) {
+                        if (filename != null) providerInstance.sourcePlugin = filename
+                        synchronized(com.lagradost.cloudstream3.APIHolder.allProviders) {
+                            com.lagradost.cloudstream3.APIHolder.allProviders.add(providerInstance)
+                            com.lagradost.cloudstream3.APIHolder.addPluginMapping(providerInstance)
+                        }
+                        AppLogger.i("Directly registered missing provider: ${providerInstance.name} ($providerClass)")
+                    }
+                }
+            } catch (_: Throwable) {}
         }
     }
 
@@ -901,6 +1006,27 @@ object ExtensionLoader {
                 zip.getEntry(entryPath) != null
             }
         } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun checkJarHasProviders(jar: File): Boolean {
+        return try {
+            ZipFile(jar).use { zip ->
+                var classCount = 0
+                val entries = zip.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    if (entry.name.endsWith(".class")) {
+                        classCount++
+                        if (entry.name.endsWith("Provider.class")) {
+                            return true
+                        }
+                    }
+                }
+                classCount > 20
+            }
+        } catch (_: Exception) {
             false
         }
     }
