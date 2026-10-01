@@ -5,6 +5,7 @@ const Player = {
     container: null,
     osdTimeout: null,
     currentMedia: null,
+    pendingResumeTime: 0,
 
     init: function() {
         this.video = document.getElementById('video-player');
@@ -12,14 +13,21 @@ const Player = {
 
         this.video.addEventListener('timeupdate', () => this.updateProgress());
         this.video.addEventListener('ended', () => this.onEnded());
+        this.video.addEventListener('playing', () => {
+            if (this.pendingResumeTime > 0) {
+                this.video.currentTime = this.pendingResumeTime;
+                this.pendingResumeTime = 0;
+            }
+        });
     },
 
     isOpen: function() {
         return this.container && this.container.style.display === 'block';
     },
 
-    play: function(streamUrl, mediaInfo) {
+    play: function(streamUrl, mediaInfo, startTime = 0) {
         this.currentMedia = mediaInfo;
+        this.pendingResumeTime = startTime;
         this.container.style.display = 'block';
 
         if (this.hls) {
@@ -31,7 +39,9 @@ const Player = {
             this.hls = new Hls({
                 enableWorker: true,
                 lowLatencyMode: false,
-                capLevelToPlayerSize: true
+                capLevelToPlayerSize: true,
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60
             });
             this.hls.loadSource(streamUrl);
             this.hls.attachMedia(this.video);
@@ -61,9 +71,9 @@ const Player = {
                 }
             });
         } else if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Native HLS support (Safari / webOS)
             this.video.src = streamUrl;
             this.video.play().catch(() => {});
+            this.populateAudioTracks();
         }
 
         this.showOsd();
@@ -115,6 +125,26 @@ const Player = {
     populateAudioTracks: function() {
         const menu = document.getElementById('audio-menu');
         menu.innerHTML = '';
+
+        // 1. Check for backend provided language tracks (e.g. Castle TV Hindi, English, Tamil, etc.)
+        if (this.currentMedia && this.currentMedia.tracks && this.currentMedia.tracks.length > 1) {
+            document.getElementById('btn-osd-audio').style.display = 'inline-block';
+            this.currentMedia.tracks.forEach(track => {
+                const btn = document.createElement('button');
+                btn.className = 'audio-track-item focusable ' + (track.selected ? 'active' : '');
+                btn.innerText = track.name || `Language ${track.languageId}`;
+                btn.onclick = () => {
+                    const currentTime = this.video.currentTime;
+                    menu.style.display = 'none';
+                    window.App.playMedia(this.currentMedia, this.currentMedia.episodeId, track.languageId);
+                    this.pendingResumeTime = currentTime;
+                };
+                menu.appendChild(btn);
+            });
+            return;
+        }
+
+        // 2. Fallback to HLS embedded audio tracks
         if (!this.hls || !this.hls.audioTracks || this.hls.audioTracks.length <= 1) {
             document.getElementById('btn-osd-audio').style.display = 'none';
             return;
@@ -205,11 +235,7 @@ const Player = {
     },
 
     onEnded: function() {
-        if (this.currentMedia && this.currentMedia.nextEpisode) {
-            window.App.playEpisode(this.currentMedia.nextEpisode);
-        } else {
-            this.close();
-        }
+        this.close();
     }
 };
 

@@ -233,3 +233,6 @@ __pycache__/
 *$py.class
 *.spec
 dist/
+*.wgt
+node_modules/
+package-lock.json

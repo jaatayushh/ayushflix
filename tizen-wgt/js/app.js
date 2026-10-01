@@ -1,7 +1,6 @@
 // Ayushflix Smart TV Main Application Controller
 const App = {
-    // Configurable API URL: Defaults to direct Tizen CORS client or backend relay
-    API_URL: window.AYUSHFLIX_API_URL || 'https://net52.cc',
+    API_URL: window.AYUSHFLIX_API_URL || 'http://localhost:8080',
     isBackendRelay: false,
     currentHero: null,
 
@@ -35,14 +34,13 @@ const App = {
             const res = await fetch(updateUrl, { cache: 'no-cache' });
             if (res.ok) {
                 const scriptText = await res.text();
-                // Inject updated scraper logic
                 const scriptEl = document.createElement('script');
                 scriptEl.text = scriptText;
                 document.head.appendChild(scriptEl);
-                console.log('Successfully synced latest scrapers from GitHub!');
+                console.log('Synced latest scrapers from GitHub');
             }
         } catch (_) {
-            console.log('Using bundled scrapers (offline or GitHub unreachable)');
+            console.log('Using bundled scrapers');
         }
     },
 
@@ -51,26 +49,48 @@ const App = {
     // -------------------------------------------------------------
     loadHome: async function() {
         const rowsContainer = document.getElementById('rows-container');
-        rowsContainer.innerHTML = '<div style="padding: 20px; font-size: 20px;">Loading catalog...</div>';
+        rowsContainer.innerHTML = '<div style="padding: 24px; font-size: 20px; color: #aaa;">Loading Ayushflix Catalog...</div>';
 
+        // 1. Try local dev server API if available
         try {
-            // Direct fetch from Netmirror (Unrestricted CORS in Tizen TV)
+            const apiRes = await fetch('/api/home');
+            if (apiRes.ok) {
+                const apiData = await apiRes.json();
+                if (apiData.success && apiData.rows && apiData.rows.length > 0) {
+                    this.isBackendRelay = true;
+                    rowsContainer.innerHTML = '';
+                    if (apiData.hero) {
+                        this.currentHero = apiData.hero;
+                        document.getElementById('hero-title').innerText = apiData.hero.title;
+                        document.getElementById('hero-desc').innerText = apiData.hero.overview || `Watch ${apiData.hero.title} in high definition with multi-language audio on Ayushflix.`;
+                        document.getElementById('hero-banner').style.backgroundImage = `url('${apiData.hero.backdrop || apiData.hero.poster}')`;
+                    }
+                    apiData.rows.forEach(r => {
+                        this.renderRow(r.title, r.items, r.provider);
+                    });
+                    SpatialNav.focus(document.getElementById('hero-play-btn'));
+                    return;
+                }
+            }
+        } catch (_) {}
+
+        // 2. Direct fetch fallback for Standalone Tizen TV (without backend server)
+        try {
             const nfUrl = 'https://net52.cc/mobile/search.php?s=';
             const nfRes = await fetch(nfUrl);
             const nfData = await nfRes.json();
 
-            // Prime Video row
             const pvUrl = 'https://net52.cc/mobile/pv/search.php?s=a';
             const pvRes = await fetch(pvUrl);
             const pvData = await pvRes.json();
 
             rowsContainer.innerHTML = '';
 
-            // Setup Hero Banner from top item
             if (nfData.searchResult && nfData.searchResult.length) {
                 const first = nfData.searchResult[0];
                 this.currentHero = {
-                    id: first.id,
+                    id: `nf_${first.id}`,
+                    sourceId: first.id,
                     provider: 'netflix',
                     title: first.t,
                     year: first.y || '',
@@ -80,22 +100,35 @@ const App = {
                 document.getElementById('hero-desc').innerText = `Watch ${first.t} in high definition with multi-language audio on Ayushflix.`;
                 document.getElementById('hero-banner').style.backgroundImage = `url('https://imgcdn.kim/poster/v/${first.id}.jpg')`;
 
-                // Add Netflix row
-                this.renderRow('Trending on Netflix', nfData.searchResult, 'netflix');
+                this.renderRow('Trending on Netflix', nfData.searchResult.map(i => ({
+                    id: `nf_${i.id}`,
+                    sourceId: i.id,
+                    title: i.t,
+                    year: i.y || '',
+                    poster: `https://imgcdn.kim/poster/v/${i.id}.jpg`,
+                    provider: 'netflix'
+                })), 'netflix');
             }
 
             if (pvData.searchResult && pvData.searchResult.length) {
-                this.renderRow('Amazon Prime Video Hits', pvData.searchResult.slice(0, 20), 'prime');
+                this.renderRow('Amazon Prime Video Hits', pvData.searchResult.slice(0, 20).map(i => ({
+                    id: `pv_${i.id}`,
+                    sourceId: i.id,
+                    title: i.t,
+                    year: i.y || '',
+                    poster: `https://imgcdn.kim/poster/v/${i.id}.jpg`,
+                    provider: 'prime'
+                })), 'prime');
             }
 
-            // Set focus to the Play button
             SpatialNav.focus(document.getElementById('hero-play-btn'));
         } catch (e) {
-            rowsContainer.innerHTML = `<div style="padding: 20px; color: #E50914;">Failed to load catalog: ${e.message}</div>`;
+            rowsContainer.innerHTML = `<div style="padding: 24px; color: #E50914;">Failed to load catalog: ${e.message}</div>`;
         }
     },
 
     renderRow: function(title, items, provider) {
+        if (!items || items.length === 0) return;
         const rowsContainer = document.getElementById('rows-container');
         const row = document.createElement('div');
         row.className = 'media-row';
@@ -111,18 +144,15 @@ const App = {
         items.forEach(item => {
             const card = document.createElement('div');
             card.className = 'card focusable';
+            const posterUrl = item.poster || (item.sourceId ? `https://imgcdn.kim/poster/v/${item.sourceId}.jpg` : '');
+            const itemTitle = item.title || item.t || 'Watch Now';
+
             card.innerHTML = `
-                <img src="https://imgcdn.kim/poster/v/${item.id}.jpg" loading="lazy" alt="${item.t}"/>
-                <div class="card-title">${item.t}</div>
+                <img src="${posterUrl}" loading="lazy" alt="${itemTitle}" onerror="this.src='https://placehold.co/180x270/1a1a1a/ffffff?text=Ayushflix'"/>
+                <div class="card-title">${itemTitle}</div>
             `;
             card.onclick = () => {
-                this.openDetails({
-                    id: item.id,
-                    provider: provider,
-                    title: item.t,
-                    year: item.y || '',
-                    poster: `https://imgcdn.kim/poster/v/${item.id}.jpg`
-                });
+                this.openDetails(item);
             };
             shelf.appendChild(card);
         });
@@ -136,47 +166,50 @@ const App = {
     // -------------------------------------------------------------
     openDetails: async function(media) {
         const modal = document.getElementById('details-modal');
-        document.getElementById('modal-title').innerText = media.title;
-        document.getElementById('modal-meta').innerText = `${media.year || ''} • ${media.provider.toUpperCase()}`;
-        document.getElementById('modal-header').style.backgroundImage = `url('${media.poster}')`;
-        document.getElementById('modal-desc').innerText = `Stream ${media.title} with multi-language audio and seamless playback.`;
+        const posterUrl = media.poster || (media.sourceId ? `https://imgcdn.kim/poster/v/${media.sourceId}.jpg` : '');
+        const title = media.title || media.t || '';
+
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-meta').innerText = `${media.year || (media.type === 'series' ? 'Web Series' : 'Movie')} • ${(media.provider || 'Ayushflix').toUpperCase()}`;
+        document.getElementById('modal-header').style.backgroundImage = `url('${media.backdrop || posterUrl}')`;
+        document.getElementById('modal-desc').innerText = media.overview || `Stream ${title} with high quality multi-language audio and seamless playback.`;
 
         const episodesShelf = document.getElementById('episodes-shelf');
-        episodesShelf.innerHTML = '<div>Checking for episodes...</div>';
+        episodesShelf.innerHTML = '<div style="color: #aaa;">Loading episodes and tracks...</div>';
         modal.style.display = 'flex';
 
-        // Check if TV series
         try {
-            const epUrl = media.provider === 'prime'
-                ? `https://net52.cc/mobile/pv/episodes.php?s=${media.id}`
-                : `https://net52.cc/mobile/episodes.php?s=${media.id}`;
-            const res = await fetch(epUrl);
-            const data = await res.json();
+            if (this.isBackendRelay) {
+                const res = await fetch(`/api/details?id=${encodeURIComponent(media.id)}`);
+                const data = await res.json();
 
-            if (data.nextPageSeason) {
-                // TV Series
-                episodesShelf.innerHTML = '';
-                const eps = [
-                    { number: 1, title: 'Episode 1' },
-                    { number: 2, title: 'Episode 2' },
-                    { number: 3, title: 'Episode 3' },
-                    { number: 4, title: 'Episode 4' }
-                ];
-                eps.forEach(ep => {
-                    const epCard = document.createElement('div');
-                    epCard.className = 'episode-card focusable';
-                    epCard.innerHTML = `<strong>${ep.title}</strong><span style="font-size:12px; color:#aaa;">Play Now</span>`;
-                    epCard.onclick = () => {
-                        this.closeModal();
-                        this.playMedia(media);
-                    };
-                    episodesShelf.appendChild(epCard);
-                });
+                if (data.success && data.episodes && data.episodes.length > 0) {
+                    episodesShelf.innerHTML = '';
+                    data.episodes.forEach(ep => {
+                        const epCard = document.createElement('div');
+                        epCard.className = 'episode-card focusable';
+                        const epName = ep.title || `Episode ${ep.episodeNumber}`;
+                        const trackNames = ep.tracks ? ep.tracks.map(t => t.name).join(', ') : '';
+                        epCard.innerHTML = `
+                            <strong>${epName}</strong>
+                            <span style="font-size: 12px; color: #00e676; margin-top: 4px;">▶ Play Now</span>
+                            ${trackNames ? `<span style="font-size: 11px; color: #888; margin-top: 2px;">${trackNames}</span>` : ''}
+                        `;
+                        epCard.onclick = () => {
+                            this.closeModal();
+                            this.playMedia(media, ep.id);
+                        };
+                        episodesShelf.appendChild(epCard);
+                    });
+                } else {
+                    episodesShelf.innerHTML = '<div style="color: #aaa;">Full Movie • Ready to Stream</div>';
+                }
             } else {
-                episodesShelf.innerHTML = '<div style="color:#aaa;">Full Feature Movie</div>';
+                // Standalone fallback
+                episodesShelf.innerHTML = '<div style="color: #aaa;">Full Feature Title</div>';
             }
         } catch (_) {
-            episodesShelf.innerHTML = '<div style="color:#aaa;">Standard Playback</div>';
+            episodesShelf.innerHTML = '<div style="color: #aaa;">Standard Playback</div>';
         }
 
         const playBtn = document.getElementById('modal-play-btn');
@@ -196,11 +229,32 @@ const App = {
     // -------------------------------------------------------------
     // PLAYBACK
     // -------------------------------------------------------------
-    playMedia: async function(media) {
+    playMedia: async function(media, episodeId, languageId) {
         try {
-            const playlistUrl = media.provider === 'prime'
-                ? `https://net52.cc/mobile/pv/playlist.php?id=${media.id}`
-                : `https://net52.cc/mobile/playlist.php?id=${media.id}`;
+            if (this.isBackendRelay) {
+                let streamUrl = `/api/stream?id=${encodeURIComponent(media.id)}`;
+                if (episodeId) streamUrl += `&episodeId=${encodeURIComponent(episodeId)}`;
+                if (languageId) streamUrl += `&languageId=${encodeURIComponent(languageId)}`;
+
+                const streamRes = await fetch(streamUrl);
+                const streamData = await streamRes.json();
+                if (streamData.success && streamData.streamUrl) {
+                    Player.play(streamData.streamUrl, {
+                        ...media,
+                        episodeId: episodeId,
+                        title: media.title || media.t || streamData.title,
+                        tracks: streamData.tracks || []
+                    });
+                    return;
+                }
+            }
+
+            // Standalone Tizen Fallback
+            const sourceId = media.sourceId || media.id.replace(/^(nf|pv|ct)_/, '');
+            const isPv = media.provider === 'prime' || media.id.startsWith('pv_');
+            const playlistUrl = isPv
+                ? `https://net52.cc/mobile/pv/playlist.php?id=${sourceId}`
+                : `https://net52.cc/mobile/playlist.php?id=${sourceId}`;
 
             const res = await fetch(playlistUrl);
             const data = await res.json();
@@ -245,34 +299,44 @@ const App = {
     performSearch: async function(query) {
         if (!query || query.trim().length < 2) return;
         const grid = document.getElementById('search-grid');
-        grid.innerHTML = '<div style="font-size:18px;">Searching...</div>';
+        grid.innerHTML = '<div style="font-size:18px; color:#aaa;">Searching Ayushflix...</div>';
 
         try {
-            const res = await fetch(`https://net52.cc/mobile/search.php?s=${encodeURIComponent(query)}`);
-            const data = await res.json();
-            grid.innerHTML = '';
+            let results = [];
+            if (this.isBackendRelay) {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                results = data.results || [];
+            } else {
+                const res = await fetch(`https://net52.cc/mobile/search.php?s=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                results = (data.searchResult || []).map(i => ({
+                    id: `nf_${i.id}`,
+                    sourceId: i.id,
+                    provider: 'Netflix',
+                    title: i.t,
+                    year: i.y || '',
+                    poster: `https://imgcdn.kim/poster/v/${i.id}.jpg`
+                }));
+            }
 
-            if (data.searchResult && data.searchResult.length) {
-                data.searchResult.forEach(item => {
+            grid.innerHTML = '';
+            if (results && results.length) {
+                results.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'card focusable';
+                    const posterUrl = item.poster || `https://imgcdn.kim/poster/v/${item.sourceId}.jpg`;
                     card.innerHTML = `
-                        <img src="https://imgcdn.kim/poster/v/${item.id}.jpg" loading="lazy" alt="${item.t}"/>
-                        <div class="card-title">${item.t}</div>
+                        <img src="${posterUrl}" loading="lazy" alt="${item.title}" onerror="this.src='https://placehold.co/180x270/1a1a1a/ffffff?text=Ayushflix'"/>
+                        <div class="card-title">${item.title}</div>
                     `;
                     card.onclick = () => {
-                        this.openDetails({
-                            id: item.id,
-                            provider: 'netflix',
-                            title: item.t,
-                            year: item.y || '',
-                            poster: `https://imgcdn.kim/poster/v/${item.id}.jpg`
-                        });
+                        this.openDetails(item);
                     };
                     grid.appendChild(card);
                 });
             } else {
-                grid.innerHTML = '<div style="color:#aaa;">No matches found.</div>';
+                grid.innerHTML = '<div style="color:#aaa;">No matches found. Try another movie or series name.</div>';
             }
         } catch (e) {
             grid.innerHTML = `<div>Search error: ${e.message}</div>`;
