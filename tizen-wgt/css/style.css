@@ -1,0 +1,426 @@
+/* Ayushflix Samsung Tizen Smart TV & Web Stylesheet */
+:root {
+    --bg-dark: #141414;
+    --bg-card: #202020;
+    --primary-red: #E50914;
+    --primary-hover: #F40612;
+    --text-white: #FFFFFF;
+    --text-muted: #AAAAAA;
+    --focus-border: #FFFFFF;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    outline: none;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-white);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* TV FOCUS STYLING */
+.focusable {
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.2s, border 0.2s;
+    cursor: pointer;
+}
+
+.focusable:focus, .focusable.focused {
+    transform: scale(1.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(229, 9, 20, 0.8);
+    border: 3px solid var(--text-white) !important;
+    z-index: 10;
+}
+
+/* NAVIGATION BAR */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4%;
+    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+    z-index: 100;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-text {
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--primary-red);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+}
+
+.nav-item {
+    font-size: 16px;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.nav-item.active, .nav-item:focus {
+    color: var(--text-white);
+}
+
+/* HERO BILLBOARD */
+.hero-banner {
+    position: relative;
+    width: 100%;
+    height: 65vh;
+    background-size: cover;
+    background-position: center 20%;
+    display: flex;
+    align-items: flex-end;
+    padding: 0 4% 5% 4%;
+    margin-bottom: -40px;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(0deg, var(--bg-dark) 5%, rgba(20,20,20,0.4) 50%, rgba(20,20,20,0.8) 100%),
+                linear-gradient(90deg, var(--bg-dark) 0%, rgba(20,20,20,0.4) 40%, rgba(20,20,20,0) 80%);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 600px;
+}
+
+.hero-title {
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    line-height: 1.1;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+}
+
+.hero-desc {
+    font-size: 16px;
+    color: #DDDDDD;
+    line-height: 1.4;
+    margin-bottom: 20px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-play {
+    background-color: var(--text-white);
+    color: #000;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 12px 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid transparent;
+}
+
+.btn-more {
+    background-color: rgba(109, 109, 110, 0.7);
+    color: var(--text-white);
+    font-size: 18px;
+    font-weight: bold;
+    padding: 12px 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid transparent;
+}
+
+/* ROWS & SHELVES */
+.main-content {
+    position: relative;
+    z-index: 5;
+    padding: 0 4% 60px 4%;
+    display: flex;
+    flex-direction: column;
+    gap: 35px;
+}
+
+.row-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+}
+
+.row-shelf {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 15px 0;
+    scroll-behavior: smooth;
+}
+
+.row-shelf::-webkit-scrollbar {
+    display: none;
+}
+
+.card {
+    flex: 0 0 180px;
+    height: 270px;
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid transparent;
+}
+
+.card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-title {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 8px;
+    font-size: 13px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+/* SEARCH SCREEN */
+.search-container {
+    padding: 90px 4% 30px 4%;
+    display: none;
+}
+
+.search-input {
+    width: 100%;
+    max-width: 650px;
+    padding: 14px 20px;
+    font-size: 20px;
+    background: #2B2B2B;
+    border: 2px solid #444;
+    border-radius: 8px;
+    color: #FFF;
+    margin-bottom: 30px;
+}
+
+.search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+}
+
+/* DETAILS MODAL */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.modal-content {
+    width: 80%;
+    max-width: 900px;
+    background: #181818;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    position: relative;
+}
+
+.modal-header {
+    height: 320px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    padding: 25px;
+}
+
+.modal-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(0deg, #181818 0%, rgba(24,24,24,0.2) 100%);
+}
+
+.modal-info {
+    position: relative;
+    z-index: 2;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.episodes-shelf {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    margin-top: 20px;
+    padding-bottom: 10px;
+}
+
+.episode-card {
+    flex: 0 0 160px;
+    height: 100px;
+    background: #252525;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    text-align: center;
+    border: 2px solid transparent;
+}
+
+/* VIDEO PLAYER OVERLAY */
+.player-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    display: none;
+    z-index: 500;
+}
+
+#video-player {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.player-osd {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 30px 4%;
+    background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.player-osd.visible {
+    opacity: 1;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+}
+
+.progress-filled {
+    height: 100%;
+    width: 0%;
+    background: var(--primary-red);
+    border-radius: 4px;
+}
+
+.player-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.control-btn {
+    background: none;
+    border: 2px solid transparent;
+    color: #FFF;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 6px;
+}
+
+/* AUDIO TRACK MODAL */
+.audio-modal {
+    position: absolute;
+    right: 4%;
+    bottom: 110px;
+    background: #202020;
+    border-radius: 8px;
+    padding: 15px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+    border: 1px solid #444;
+}
+
+.audio-track-item {
+    padding: 8px 14px;
+    font-size: 15px;
+    border-radius: 4px;
+    background: none;
+    border: 2px solid transparent;
+    color: #FFF;
+    text-align: left;
+}
+
+.audio-track-item.active {
+    color: var(--primary-red);
+    font-weight: bold;
+}

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" 
+        xmlns:tizen="http://tizen.org/ns/tizen" 
+        id="http://ayushflix.tv/Ayushflix" 
+        version="2.1.6" 
+        viewmodes="maximized">
+    
+    <tizen:application id="G9b5bE7Ay1.Ayushflix" 
+                       package="G9b5bE7Ay1" 
+                       type="capp" 
+                       required_version="3.0"/>
+    
+    <content src="index.html"/>
+    <feature name="http://tizen.org/feature/screen.size.all"/>
+    <icon src="icon.png"/>
+    
+    <name>Ayushflix</name>
+    <description>Ayushflix - Free Streaming Movies &amp; Series for Samsung Smart TV</description>
+    <author href="https://github.com/jaatayushh/ayushflix" email="devpanipat002@gmail.com">Ayush</author>
+
+    <!-- TV Privileges -->
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+    <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+
+    <!-- Full Unrestricted Network & CORS Access -->
+    <access origin="*" subdomains="true"/>
+
+    <tizen:profile name="tv"/>
+    <tizen:setting screen-orientation="landscape" context-menu="enable" background-support="disable" encryption="disable" install-location="auto"/>
+</widget>

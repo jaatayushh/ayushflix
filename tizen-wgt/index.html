@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayushflix</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Local HLS.js for offline & fast Smart TV loading -->
+    <script src="js/hls.min.js"></script>
+</head>
+<body>
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="navbar">
+        <div class="logo-container">
+            <span class="logo-text">Ayushflix</span>
+        </div>
+        <nav class="nav-links">
+            <button id="nav-home" class="nav-item focusable active">Home</button>
+            <button id="nav-search" class="nav-item focusable">Search</button>
+        </nav>
+    </header>
+
+    <!-- MAIN HOME VIEW -->
+    <main id="main-container">
+        <!-- HERO BANNER -->
+        <section id="hero-banner" class="hero-banner">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 id="hero-title" class="hero-title">Loading...</h1>
+                <p id="hero-desc" class="hero-desc">Discover top streaming movies, series, and exclusives with multi-language audio.</p>
+                <div class="hero-buttons">
+                    <button id="hero-play-btn" class="btn-play focusable">▶ Play</button>
+                    <button id="hero-more-btn" class="btn-more focusable">ℹ More Info</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ROWS CONTAINER -->
+        <section id="rows-container" class="main-content">
+            <!-- Dynamic shelves rendered here -->
+        </section>
+    </main>
+
+    <!-- SEARCH VIEW -->
+    <section id="search-container" class="search-container">
+        <input type="text" id="search-input" class="search-input focusable" placeholder="Search movies, series, shows...">
+        <div id="search-grid" class="search-grid"></div>
+    </section>
+
+    <!-- DETAILS & EPISODE MODAL -->
+    <div id="details-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modal-header" class="modal-header">
+                <div class="modal-info">
+                    <h2 id="modal-title" style="font-size: 32px; font-weight: 800; margin-bottom: 6px;">Title</h2>
+                    <span id="modal-meta" style="color: #46d369; font-weight: bold; font-size: 16px;">2024</span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <p id="modal-desc" style="color: #ccc; line-height: 1.5; margin-bottom: 20px; font-size: 16px;">Description</p>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <button id="modal-play-btn" class="btn-play focusable">▶ Watch Now</button>
+                    <button id="modal-close-btn" class="btn-more focusable">Close</button>
+                </div>
+                <h3 style="font-size: 20px; margin-bottom: 10px;">Episodes</h3>
+                <div id="episodes-shelf" class="episodes-shelf">
+                    <!-- Episodes dynamic list -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN TV VIDEO PLAYER -->
+    <div id="player-container" class="player-container">
+        <video id="video-player" playsinline></video>
+        
+        <!-- ON-SCREEN TV CONTROLS -->
+        <div id="player-osd" class="player-osd">
+            <div class="progress-bar-container" id="progress-container">
+                <div id="player-progress" class="progress-filled"></div>
+            </div>
+            <div class="player-controls">
+                <div style="display: flex; gap: 12px;">
+                    <button id="btn-osd-rewind" class="control-btn focusable" onclick="Player.seek(-10)">⏪ -10s</button>
+                    <button id="btn-osd-play" class="control-btn focusable" onclick="Player.togglePlay()">Pause</button>
+                    <button id="btn-osd-forward" class="control-btn focusable" onclick="Player.seek(10)">+10s ⏩</button>
+                </div>
+                <div style="display: flex; gap: 12px; position: relative;">
+                    <button id="btn-osd-audio" class="control-btn focusable" onclick="Player.toggleAudioModal()">🎧 Audio Tracks</button>
+                    <button id="btn-osd-close" class="control-btn focusable" onclick="Player.close()">✕ Exit</button>
+                    
+                    <!-- AUDIO TRACKS SELECTION MENU -->
+                    <div id="audio-menu" class="audio-modal"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="js/spatial-nav.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
