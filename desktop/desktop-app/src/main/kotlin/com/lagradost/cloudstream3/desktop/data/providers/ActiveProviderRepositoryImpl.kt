@@ -73,19 +73,24 @@ class ActiveProviderRepositoryImpl(
         val allApis = APIHolder.allProviders.filter { isRealContentProvider(it) }
         _allRealProviders.value = allApis
 
-        val resolvedActive = currentKeys.mapNotNull { key ->
+        val currentKeys = _activeProviderKeys.value
+        val filtered = currentKeys.mapNotNull { key ->
             allApis.firstOrNull { matchesKey(it, key) }
         }.filter { api ->
             // Prevent selecting broken Netmirror providers that play the 10-minute spam abuse video
             val n = api.name.lowercase()
             !n.contains("netflix") && !n.contains("prime") && !n.contains("hotstar") && !n.contains("cnc verse")
-        }.ifEmpty {
+        }
+
+        val resolvedActive: List<MainAPI> = if (filtered.isEmpty()) {
             val preferred = allApis.firstOrNull {
                 it.name.contains("MovieBox", ignoreCase = true)
             } ?: allApis.firstOrNull {
                 it.name.contains("Castle", ignoreCase = true)
             }
             listOfNotNull(preferred ?: allApis.firstOrNull())
+        } else {
+            filtered
         }
 
         _activeProviders.value = resolvedActive
