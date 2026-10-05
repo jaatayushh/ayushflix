@@ -57,7 +57,12 @@ object AccountHelper {
         var currentEditAccount = account
         val dialog = builder.show()
 
-        if (!isNewAccount) binding.title.setText(R.string.edit_account)
+        if (isNewAccount) {
+            binding.title.text = "Set Up Profile"
+            binding.applyBtt.text = "Save & Continue"
+        } else {
+            binding.title.setText(R.string.edit_account)
+        }
 
         // Set up the dialog content
         binding.accountName.text = Editable.Factory.getInstance()?.newEditable(account.name)
@@ -100,13 +105,15 @@ object AccountHelper {
 
         // Handle the profile picture and its interactions
         binding.accountImage.loadImage(account.image)
-        binding.accountImage.setOnClickListener {
-            // Roll the image forwards once
-            currentEditAccount = currentEditAccount.copy(customImage = null)
-            currentEditAccount =
-                currentEditAccount.copy(defaultImageIndex = (currentEditAccount.defaultImageIndex + 1) % DataStoreHelper.profileImages.size)
-            binding.accountImage.loadImage(currentEditAccount.image)
+        val openAvatarPicker = {
+            AvatarPickerHelper.showAvatarPicker(context) { selectedUrl ->
+                currentEditAccount = currentEditAccount.copy(customImage = selectedUrl)
+                binding.accountImage.loadImage(selectedUrl)
+            }
         }
+        binding.accountImage.setOnClickListener { openAvatarPicker() }
+        binding.editProfilePhotoButton.setOnClickListener { openAvatarPicker() }
+        binding.accountImageCard.setOnClickListener { openAvatarPicker() }
 
         // Handle applying changes
         binding.applyBtt.setOnClickListener {
@@ -116,11 +123,13 @@ object AccountHelper {
                     if (pin == null) return@showPinInputDialog
                     // PIN is correct, proceed to update the account
                     accountEditCallback.invoke(currentEditAccount)
+                    MainActivity.updateProfileNavIcon()
                     dialog.dismissSafe()
                 }
             } else {
                 // No lock PIN set, proceed to update the account
                 accountEditCallback.invoke(currentEditAccount)
+                MainActivity.updateProfileNavIcon()
                 dialog.dismissSafe()
             }
         }

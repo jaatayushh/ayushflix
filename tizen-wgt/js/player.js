@@ -34,19 +34,43 @@ const Player = {
             this.hls.destroy();
             this.hls = null;
         }
+        if (this.dashPlayer) {
+            this.dashPlayer.destroy();
+            this.dashPlayer = null;
+        }
 
-        if (Hls.isSupported()) {
+        const isDash = streamUrl.includes('.mpd') || (mediaInfo && mediaInfo.type === 'dash');
+
+        if (isDash && typeof dashjs !== 'undefined') {
+            this.dashPlayer = dashjs.MediaPlayer().create();
+            this.dashPlayer.initialize(this.video, streamUrl, true);
+            this.dashPlayer.updateSettings({
+                streaming: {
+                    abr: {
+                        autoSwitchBitrate: { video: true },
+                        maxBitrate: { video: 8000 }
+                    }
+                }
+            });
+            this.dashPlayer.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
+                this.populateAudioTracks();
+                this.video.play().catch(() => {});
+            });
+        } else if (Hls.isSupported() && !streamUrl.endsWith('.mp4')) {
             this.hls = new Hls({
                 enableWorker: true,
                 lowLatencyMode: false,
-                capLevelToPlayerSize: true,
-                maxBufferLength: 30,
-                maxMaxBufferLength: 60
+                capLevelToPlayerSize: false,
+                maxBufferLength: 60,
+                maxMaxBufferLength: 120
             });
             this.hls.loadSource(streamUrl);
             this.hls.attachMedia(this.video);
 
-            this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                if (this.hls.levels && this.hls.levels.length > 0) {
+                    this.hls.currentLevel = this.hls.levels.length - 1;
+                }
                 this.populateAudioTracks();
                 this.video.play().catch(() => {});
             });
@@ -70,7 +94,7 @@ const Player = {
                     }
                 }
             });
-        } else if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
+        } else {
             this.video.src = streamUrl;
             this.video.play().catch(() => {});
             this.populateAudioTracks();
@@ -85,6 +109,10 @@ const Player = {
         if (this.hls) {
             this.hls.destroy();
             this.hls = null;
+        }
+        if (this.dashPlayer) {
+            this.dashPlayer.destroy();
+            this.dashPlayer = null;
         }
         if (this.video) {
             this.video.pause();

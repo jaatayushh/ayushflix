@@ -53,7 +53,6 @@ class AccountAdapter(
                 accountName.text = item.name
                 accountImage.loadImage(item.image)
                 lockIcon.isVisible = item.lockPin != null
-                outline.isVisible = !isTv && isLastUsedAccount
 
                 if (isTv) {
                     // For emulator but this is fine on TV also
@@ -105,7 +104,6 @@ class AccountAdapter(
                     RoundedCornersTransformation(10f)
                 }
                 lockIcon.isVisible = item.lockPin != null
-                outline.isVisible = !isTv && isLastUsedAccount
 
                 if (isTv) {
                     // For emulator but this is fine on TV also
@@ -122,7 +120,7 @@ class AccountAdapter(
                     }
                 }
 
-                root.setOnClickListener {
+                val openEdit = {
                     showAccountEditDialog(
                         context = root.context,
                         account = item,
@@ -135,6 +133,8 @@ class AccountAdapter(
                         }
                     )
                 }
+                root.setOnClickListener { openEdit() }
+                pencilIcon.setOnClickListener { openEdit() }
             }
         }
     }

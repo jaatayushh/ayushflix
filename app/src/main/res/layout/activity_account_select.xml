@@ -73,4 +73,102 @@
                 android:paddingRight="16dp" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- Simulated Home Screen Backdrop Layer (fades in as user selects profile) -->
+    <FrameLayout
+        android:id="@+id/home_preview_layer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:visibility="gone">
+
+        <!-- Top Header mockup -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_ayushflix_a_logo" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="Home"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Simulated Floating Bottom Nav Pill -->
+        <LinearLayout
+            android:id="@+id/simulated_bottom_nav"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="16dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:background="@drawable/bottom_nav_pill_bg"
+            android:elevation="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Item 1: Home -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+                <ImageView
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_outline_home_24"
+                    app:tint="@color/item_select_color" />
+            </FrameLayout>
+
+            <!-- Item 2: Search -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+                <ImageView
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/search_icon"
+                    app:tint="@color/item_select_color" />
+            </FrameLayout>
+
+            <!-- Item 3: Downloads -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+                <ImageView
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/netflix_download"
+                    app:tint="@color/item_select_color" />
+            </FrameLayout>
+
+            <!-- Item 4: Profile Target Anchor -->
+            <FrameLayout
+                android:id="@+id/simulated_profile_item"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+                <ImageView
+                    android:id="@+id/simulated_profile_slot"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center"
+                    android:visibility="invisible" />
+            </FrameLayout>
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>

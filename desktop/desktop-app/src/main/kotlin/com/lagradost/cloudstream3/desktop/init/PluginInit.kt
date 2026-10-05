@@ -61,6 +61,9 @@ private fun extractBundledPlugins() {
         } catch (_: Exception) {}
 
         val bundled = listOf(
+            "MovieBoxProviderIN.cs3",
+            "MovieBoxProvider.cs3",
+            "CastleTvProvider.cs3",
             "Ayushflix.cs3"
         )
         for (pluginName in bundled) {

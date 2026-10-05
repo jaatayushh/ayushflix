@@ -169,7 +169,7 @@ open class HomeChildItemAdapter(
 
         fun updatePosterSize(context: Context, value: Int? = null) {
             val scale = value ?: PreferenceManager.getDefaultSharedPreferences(context)
-                ?.getInt(context.getString(R.string.poster_size_key), 0) ?: 0
+                ?.getInt(context.getString(R.string.poster_size_key), 6) ?: 6
             // Scale by +10% per step
             val mul = 1.0f + scale * 0.1f
             minPosterSize = (114.toPx.toFloat() * mul).toInt()

@@ -201,6 +201,11 @@ import kotlin.system.exitProcess
 
 class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCallback {
     companion object {
+        var mainActivity: java.lang.ref.WeakReference<MainActivity>? = null
+        fun updateProfileNavIcon() {
+            mainActivity?.get()?.updateProfileNavIcon()
+        }
+
         var activityResultLauncher: ActivityResultLauncher<Intent>? = null
 
         const val TAG = "MAINACT"
@@ -768,6 +773,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
 
     override fun onResume() {
         super.onResume()
+        updateProfileNavIcon()
         afterPluginsLoadedEvent += ::onAllPluginsLoaded
         setActivityInstance(this)
         syncNetmirrorCookie(this)
@@ -1330,6 +1336,7 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
         setNavigationBarColorCompat(R.attr.primaryGrayBackground)
         updateLocale()
         super.onCreate(savedInstanceState)
+        mainActivity = java.lang.ref.WeakReference(this)
         // Neutralize CNCVerse donation dialog completely
         safe {
             val today = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())
@@ -1862,12 +1869,18 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             itemActiveIndicatorColor = ColorStateList.valueOf(android.graphics.Color.parseColor("#33FFFFFF"))
             setupWithNavController(navController)
             setOnItemSelectedListener { item ->
-                onNavDestinationSelected(
+                val result = onNavDestinationSelected(
                     item,
                     navController
                 )
+                updateProfileNavIcon()
+                result
             }
         }
+        navController.addOnDestinationChangedListener { _, _, _ ->
+            updateProfileNavIcon()
+        }
+        updateProfileNavIcon()
 
         binding?.navRailView?.apply {
             if (isLayout(PHONE)) {
@@ -2236,6 +2249,71 @@ class MainActivity : AppCompatActivity(), ColorPickerDialogListener, BiometricCa
             ).text.trim() == "ok"
         } catch (t: Throwable) {
             false
+        }
+    }
+
+    fun updateProfileNavIcon() {
+        try {
+            val currentAccount = DataStoreHelper.getCurrentAccount() ?: return
+            val avatarData = currentAccount.image
+
+            binding?.navView?.post {
+                val settingsItemView = binding?.navView?.findViewById<View>(R.id.navigation_settings)
+                val iconView = settingsItemView?.findViewById<ImageView>(
+                    com.google.android.material.R.id.navigation_bar_item_icon_view
+                )
+                if (iconView != null) {
+                    val density = iconView.resources.displayMetrics.density
+                    val sizePx = (32f * density).toInt()
+                    val lp = iconView.layoutParams
+                    if (lp != null) {
+                        lp.width = sizePx
+                        lp.height = sizePx
+                        iconView.layoutParams = lp
+                    }
+                    iconView.imageTintList = null
+                    iconView.outlineProvider = object : android.view.ViewOutlineProvider() {
+                        override fun getOutline(view: View, outline: android.graphics.Outline) {
+                            outline.setRoundRect(0, 0, view.width, view.height, 8f * view.resources.displayMetrics.density)
+                        }
+                    }
+                    iconView.clipToOutline = true
+                    iconView.scaleType = ImageView.ScaleType.CENTER_CROP
+                    iconView.loadImage(avatarData) {
+                        size(120, 120)
+                    }
+                }
+            }
+
+            binding?.navRailView?.post {
+                val railSettingsView = binding?.navRailView?.findViewById<View>(R.id.navigation_settings)
+                val railIconView = railSettingsView?.findViewById<ImageView>(
+                    com.google.android.material.R.id.navigation_bar_item_icon_view
+                )
+                if (railIconView != null) {
+                    val density = railIconView.resources.displayMetrics.density
+                    val sizePx = (32f * density).toInt()
+                    val lp = railIconView.layoutParams
+                    if (lp != null) {
+                        lp.width = sizePx
+                        lp.height = sizePx
+                        railIconView.layoutParams = lp
+                    }
+                    railIconView.imageTintList = null
+                    railIconView.outlineProvider = object : android.view.ViewOutlineProvider() {
+                        override fun getOutline(view: View, outline: android.graphics.Outline) {
+                            outline.setRoundRect(0, 0, view.width, view.height, 8f * view.resources.displayMetrics.density)
+                        }
+                    }
+                    railIconView.clipToOutline = true
+                    railIconView.scaleType = ImageView.ScaleType.CENTER_CROP
+                    railIconView.loadImage(avatarData) {
+                        size(120, 120)
+                    }
+                }
+            }
+        } catch (t: Throwable) {
+            logError(t)
         }
     }
 

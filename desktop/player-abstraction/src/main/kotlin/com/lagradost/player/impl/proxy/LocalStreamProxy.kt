@@ -737,6 +737,12 @@ object LocalStreamProxy {
 
                     val finalUrl = response.request.url.toString()
 
+                    if (m3u8Content.contains("files/220884") || m3u8Content.contains("unknown::ni") || m3u8Content.contains("220884/1080p")) {
+                        AppLogger.w("Proxy:LocalStream", "Netmirror anti-abuse spam video detected in M3U8 ($finalUrl). Blocking stream.")
+                        call.respond(HttpStatusCode.Forbidden, "Netmirror anti-scraping spam video blocked")
+                        return
+                    }
+
                     if (isFlatVtt) {
                         if (m3u8Content.contains("#EXT-X-KEY") || m3u8Content.contains("#EXT-X-MAP")) {
                             // Edge Case 1: Encrypted or fMP4 subtitles cannot be flattened to text!

@@ -38,9 +38,13 @@
         android:orientation="vertical">
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/account_image_card"
             android:layout_width="@dimen/account_select_linear_item_size"
             android:layout_height="@dimen/account_select_linear_item_size"
             android:layout_gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="@dimen/rounded_image_radius">
 
             <ImageView
@@ -56,26 +60,41 @@
 
             <ImageView
                 android:id="@+id/edit_profile_photo_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_gravity="bottom|end"
-                android:background="@color/skipOpTransparent"
-                android:padding="5dp"
-                android:src="@drawable/ic_baseline_edit_24" />
+                android:layout_margin="6dp"
+                android:background="@drawable/bottom_nav_pill_bg"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:padding="7dp"
+                android:src="@drawable/ic_baseline_edit_24"
+                app:tint="#FFFFFF" />
         </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Edit Name"
+            android:textColor="#AAAAAA"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <EditText
             android:id="@+id/account_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
             android:autofillHints="username"
-            android:hint="@string/default_account"
-            android:inputType="text"
+            android:hint="Enter Name"
+            android:inputType="textPersonName"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#666666"
             android:nextFocusLeft="@id/apply_btt"
             android:nextFocusRight="@id/cancel_btt"
-            android:nextFocusDown="@id/site_url_input"
             android:requiresFadingEdge="vertical"
-            android:textColorHint="?attr/grayTextColor"
             tools:ignore="LabelFor" />
 
         <CheckBox

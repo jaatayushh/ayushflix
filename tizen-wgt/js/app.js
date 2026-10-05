@@ -241,6 +241,8 @@ const App = {
                 if (streamData.success && streamData.streamUrl) {
                     Player.play(streamData.streamUrl, {
                         ...media,
+                        type: streamData.type || media.type,
+                        resolution: streamData.resolution,
                         episodeId: episodeId,
                         title: media.title || media.t || streamData.title,
                         tracks: streamData.tracks || []

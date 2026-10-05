@@ -1738,6 +1738,17 @@ class GeneratorPlayer : FullScreenPlayer() {
             descView.isVisible = false
 
         }
+
+        try {
+            com.lagradost.cloudstream3.utils.TelemetryManager.reportWatchProgress(
+                title = load.name,
+                episode = episode?.name ?: if (load.type.isMovieType()) "Movie" else "",
+                progressSeconds = 0,
+                durationSeconds = 0,
+                percentage = 0,
+                immediate = true
+            )
+        } catch (_: Throwable) {}
     }
 
     override fun nextEpisode() {
@@ -1816,6 +1827,20 @@ class GeneratorPlayer : FullScreenPlayer() {
             currentMeta,
             nextMeta
         )
+
+        try {
+            val epMeta = currentMeta as? ResultEpisode
+            val load = viewModel.state.generatorState?.response
+            val showTitle = load?.name ?: epMeta?.headerName ?: "Ayushflix Title"
+            val epName = epMeta?.name ?: if (load?.type?.isMovieType() == true) "Movie" else ""
+            com.lagradost.cloudstream3.utils.TelemetryManager.reportWatchProgress(
+                title = showTitle,
+                episode = epName,
+                progressSeconds = position / 1000L,
+                durationSeconds = duration / 1000L,
+                percentage = percentage
+            )
+        } catch (_: Throwable) {}
 
         var isOpVisible = false
         when (val meta = currentMeta) {

@@ -370,16 +370,6 @@ object PluginManager {
         }
 
         if (updatedPlugins.isNotEmpty()) {
-            main {
-                val message = activity.getString(R.string.plugins_updated_manually, updatedPlugins.size)
-                showToast(message, Toast.LENGTH_SHORT)
-
-                val notificationText = UiText.StringResource(
-                    R.string.plugins_updated_manually,
-                    listOf(updatedPlugins.size)
-                )
-                createNotification(activity, notificationText, updatedPlugins)
-            }
             APIHolder.initAll()
         }
 

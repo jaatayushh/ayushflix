@@ -29,8 +29,10 @@ import com.lagradost.cloudstream3.utils.BiometricAuthenticator.isAuthEnabled
 import com.lagradost.cloudstream3.utils.BiometricAuthenticator.promptInfo
 import com.lagradost.cloudstream3.utils.BiometricAuthenticator.startBiometricAuthentication
 import com.lagradost.cloudstream3.utils.DataStoreHelper.accounts
+import com.lagradost.cloudstream3.utils.DataStoreHelper.getDefaultAccount
 import com.lagradost.cloudstream3.utils.DataStoreHelper.selectedKeyIndex
 import com.lagradost.cloudstream3.utils.DataStoreHelper.setAccount
+import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
 import com.lagradost.cloudstream3.utils.UIHelper.enableEdgeToEdgeCompat
 import com.lagradost.cloudstream3.utils.UIHelper.fixSystemBarsPadding
 import com.lagradost.cloudstream3.utils.UIHelper.openActivity
@@ -135,6 +137,23 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
         setContentView(binding.root)
         fixSystemBarsPadding(binding.root, padTop = false)
 
+        val hasCompletedSetup = settingsManager.getBoolean("has_completed_profile_setup", false)
+        if (!hasCompletedSetup && !isFromMainActivity && !isEditingFromMainActivity) {
+            val initialAccount = accounts.firstOrNull() ?: getDefaultAccount(this)
+            AccountHelper.showAccountEditDialog(
+                context = this,
+                account = initialAccount,
+                isNewAccount = true,
+                accountEditCallback = { updatedAccount ->
+                    settingsManager.edit().putBoolean("has_completed_profile_setup", true).apply()
+                    accountViewModel.handleAccountUpdate(updatedAccount, this)
+                    setAccount(updatedAccount)
+                    navigateToMainActivity()
+                },
+                accountDeleteCallback = {}
+            )
+        }
+
         val recyclerView: AutofitRecyclerView = binding.accountRecyclerView
 
         observe(accountViewModel.accounts) { liveAccounts ->
@@ -208,7 +227,53 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
             }
         }
 
+        // 10-second trending movies & series poster backdrop carousel
+        setupTrendingCarousel(binding.trendingPoster)
+
         askBiometricAuth()
+    }
+
+    private var carouselHandler: android.os.Handler? = null
+    private var carouselRunnable: Runnable? = null
+
+    private fun setupTrendingCarousel(imageView: android.widget.ImageView) {
+        val backdropUrls = listOf(
+            "https://image.tmdb.org/t/p/original/9BBTo63ANSmhC4e6r62OJFuK2GL.jpg", // Stranger Things
+            "https://image.tmdb.org/t/p/original/mDeUmZwuhq0075f9746b19a.jpg", // Wednesday
+            "https://image.tmdb.org/t/p/original/ggFHVNu6YYI5L9pCfOacjizRGt.jpg", // Breaking Bad
+            "https://image.tmdb.org/t/p/original/etjA2mXO0cu5h259vgCJsm85.jpg", // Money Heist
+            "https://image.tmdb.org/t/p/original/reEMJA1uzscCbk5r6xg3ej6.jpg", // Squid Game
+            "https://image.tmdb.org/t/p/original/2wP1m4yW000a6f849b389.jpg", // Dark
+            "https://image.tmdb.org/t/p/original/o82697x756578b8849b389.jpg"  // Lost in Space
+        )
+        
+        var currentIndex = 0
+        imageView.loadImage(backdropUrls[0])
+
+        carouselHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        carouselRunnable = object : Runnable {
+            override fun run() {
+                currentIndex = (currentIndex + 1) % backdropUrls.size
+                imageView.animate()
+                    .alpha(0.1f)
+                    .setDuration(600)
+                    .withEndAction {
+                        imageView.loadImage(backdropUrls[currentIndex])
+                        imageView.animate()
+                            .alpha(0.7f)
+                            .setDuration(600)
+                            .start()
+                    }
+                    .start()
+                carouselHandler?.postDelayed(this, 10000L) // Switch every 10 seconds
+            }
+        }
+        carouselHandler?.postDelayed(carouselRunnable!!, 10000L)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        carouselRunnable?.let { carouselHandler?.removeCallbacks(it) }
     }
 
     @SuppressLint("UnsafeIntentLaunch")
@@ -254,12 +319,7 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
         view.getLocationInWindow(location)
 
         val cloneView = android.widget.ImageView(this)
-        val image = account.image
-        if (image is com.lagradost.cloudstream3.utils.UiImage.Drawable) {
-            cloneView.setImageResource(image.resId)
-        } else if (image is com.lagradost.cloudstream3.utils.UiImage.Image) {
-            // com.lagradost.cloudstream3.utils.UIHelper.setImage(cloneView, image.url)
-        }
+        cloneView.loadImage(account.image)
         
         val layoutParams = android.widget.FrameLayout.LayoutParams(view.width, view.height)
         cloneView.layoutParams = layoutParams
@@ -284,7 +344,7 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
         cloneView.animate()
             .x(centerX)
             .y(centerY)
-            .setDuration(500)
+            .setDuration(450)
             .withEndAction {
                 val progressBar = android.widget.ProgressBar(this)
                 val pbParams = android.widget.FrameLayout.LayoutParams(
@@ -297,22 +357,55 @@ class AccountSelectActivity : FragmentActivity(), BiometricCallback {
                 rootLayout.addView(progressBar)
 
                 cloneView.postDelayed({
-                    val targetX = rootLayout.width.toFloat() - view.width
-                    val targetY = rootLayout.height.toFloat() - view.height
-                    
                     progressBar.visibility = android.view.View.GONE
-                    
+
+                    // 1. Reveal the simulated Home Screen & Floating Bottom Nav Pill while the avatar moves!
+                    val homePreview = findViewById<android.view.View>(R.id.home_preview_layer)
+                    if (homePreview != null) {
+                        homePreview.visibility = android.view.View.VISIBLE
+                        homePreview.animate()
+                            .alpha(1f)
+                            .setDuration(400)
+                            .start()
+                    }
+
+                    // 2. Compute the exact position of the 4th item (Profile button) in the floating bottom nav pill
+                    val density = resources.displayMetrics.density
+                    val pillMarginHorizontal = 20f * density
+                    val pillMarginBottom = 16f * density
+                    val pillHeight = 60f * density
+                    val pillWidth = rootLayout.width.toFloat() - (pillMarginHorizontal * 2f)
+
+                    // Profile icon is the 4th item (last one):
+                    val profileItemCenterX = pillMarginHorizontal + (pillWidth * 7f / 8f)
+                    val profileItemCenterY = rootLayout.height.toFloat() - pillMarginBottom - (pillHeight / 2f)
+
+                    val targetX = profileItemCenterX - (view.width / 2f)
+                    val targetY = profileItemCenterY - (view.height / 2f)
+
+                    val targetIconSize = 32f * density
+                    val targetScale = (targetIconSize / view.width.toFloat()).coerceIn(0.18f, 0.40f)
+
+                    // Bring avatar view to front above home preview
+                    cloneView.bringToFront()
+
+                    // 3. Smooth curved animation: Glide down into the bottom-right profile button of the pill
                     cloneView.animate()
                         .x(targetX)
                         .y(targetY)
-                        .scaleX(0.2f)
-                        .scaleY(0.2f)
-                        .setDuration(500)
+                        .scaleX(targetScale)
+                        .scaleY(targetScale)
+                        .alpha(1.0f)
+                        .setDuration(600)
+                        .setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
                         .withEndAction {
-                            accountViewModel.handleAccountSelect(account, this)
+                            // Brief settling pause then transition to MainActivity seamlessly
+                            cloneView.postDelayed({
+                                accountViewModel.handleAccountSelect(account, this)
+                            }, 100)
                         }
                         .start()
-                }, 1500)
+                }, 750)
             }
             .start()
     }
