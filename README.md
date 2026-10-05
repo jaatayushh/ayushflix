@@ -155,20 +155,6 @@ Users are solely responsible for ensuring that their use of this software compli
 
 ---
 
-## 📊 Privacy & Telemetry Disclosure
-
-Ayushflix collects non-personally identifiable telemetry data exclusively for service optimization, server health monitoring, and analytics:
-
-- **What We Collect**:
-  - Content titles, episodes, and watch progress percentage (to maintain streaming quality and provider health).
-  - Coarse geographic region (**Country** and **City** only) to optimize regional content delivery.
-  - Selected profile display name and client platform (Android / Desktop).
-
-- **Strict Zero-IP Policy**:
-  - **We do NOT store or log IP addresses.**
-  - Incoming IP addresses are temporarily evaluated by cloud proxy headers solely to approximate coarse country/city locations and are immediately discarded without ever being written to a database or disk.
-  - No personal identifiable information (PII), email addresses, credentials, or phone numbers are ever collected or shared.
-
 ---
 
 ## 📄 License
