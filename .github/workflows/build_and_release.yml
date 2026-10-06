@@ -231,7 +231,7 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [build-apk]
+    needs: [build-apk, build-desktop, build-macos]
     runs-on: ubuntu-latest
     if: always() && needs.build-apk.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true))
 
