@@ -99,7 +99,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
-          build-root-directory: desktop
 
       - name: Download libmpv-2.dll
         shell: pwsh
@@ -205,7 +204,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
-          build-root-directory: desktop
 
       - name: Install MPV via Homebrew
         run: |
@@ -218,6 +216,7 @@ jobs:
       - name: Build macOS Distributable & DMG
         run: |
           cd desktop
+          chmod +x gradlew
           VER="${{ github.ref_name }}"
           VER="${VER#v}"
           if [[ -z "$VER" || "$VER" == main* ]]; then VER="1.0.0"; fi
