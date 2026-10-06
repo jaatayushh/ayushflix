@@ -162,6 +162,16 @@ compose.desktop {
                 shortcut = true // Creates a Desktop shortcut during install
                 perUserInstall = true // Installs per-user, avoids needing admin rights
             }
+
+            macOS {
+                iconFile.set(project.file("src/main/resources/app_icon.icns"))
+                bundleID = "com.lagradost.cloudstream3.desktop"
+                dockName = "Ayushflix"
+                packageFormats(
+                    org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
+                    org.jetbrains.compose.desktop.application.dsl.TargetFormat.Pkg
+                )
+            }
         }
     }
 }

@@ -102,7 +102,11 @@ interface MpvLibrary : Library {
         }
 
         val INSTANCE: MpvLibrary by lazy {
-            val targets = listOf("libmpv-2", "mpv-2", "mpv-1", "mpv", "libmpv", "libmpv.so.1", "libmpv.so.2", "mpv-3.dll")
+            val targets = listOf(
+                "libmpv-2", "mpv-2", "mpv-1", "mpv", "libmpv", 
+                "libmpv.dylib", "libmpv.2.dylib", "libmpv.1.dylib",
+                "libmpv.so.1", "libmpv.so.2", "mpv-3.dll"
+            )
             var loaded: MpvLibrary? = null
             for (target in targets) {
                 try {
