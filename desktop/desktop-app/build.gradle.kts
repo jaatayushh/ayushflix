@@ -129,7 +129,7 @@ compose.desktop {
             description = "Ayushflix Desktop Client"
             vendor = "Ayush"
             includeAllModules = false
-            modules(
+            val commonModules = mutableListOf(
                 "java.base",
                 "java.desktop",
                 "java.instrument",
@@ -145,7 +145,6 @@ compose.desktop {
                 "jdk.unsupported", // Required by JNA & Coroutines Unsafe
                 "jdk.crypto.ec", // Required for HTTPS
                 "jdk.crypto.cryptoki",
-                "jdk.crypto.mscapi", // Required on Windows for some HTTPS cert verifications
                 "jdk.management",
                 "jdk.charsets", // Required to decode some foreign websites
                 "jdk.zipfs", // Required by dex2jar for JAR generation
@@ -153,6 +152,10 @@ compose.desktop {
                 "jdk.compiler", // Required by Rhino JS compiler
                 "jdk.localedata", // Required by Rhino JS Date functions
             )
+            if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
+                commonModules.add("jdk.crypto.mscapi")
+            }
+            modules.addAll(commonModules)
             appResourcesRootDir.set(project.layout.projectDirectory.dir("appResources"))
 
             targetFormats(
