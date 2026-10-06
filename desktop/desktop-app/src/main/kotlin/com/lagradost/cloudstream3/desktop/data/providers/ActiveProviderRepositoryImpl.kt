@@ -76,15 +76,11 @@ class ActiveProviderRepositoryImpl(
         val currentKeys = _activeProviderKeys.value
         val filtered = currentKeys.mapNotNull { key ->
             allApis.firstOrNull { matchesKey(it, key) }
-        }.filter { api ->
-            // Prevent selecting broken Netmirror providers that play the 10-minute spam abuse video
-            val n = api.name.lowercase()
-            !n.contains("netflix") && !n.contains("prime") && !n.contains("hotstar") && !n.contains("cnc verse")
         }
 
         val resolvedActive: List<MainAPI> = if (filtered.isEmpty()) {
             val preferred = allApis.firstOrNull {
-                it.name.contains("MovieBox", ignoreCase = true)
+                it.name.contains("Ayushflix", ignoreCase = true)
             } ?: allApis.firstOrNull {
                 it.name.contains("Castle", ignoreCase = true)
             }
@@ -96,13 +92,7 @@ class ActiveProviderRepositoryImpl(
         _activeProviders.value = resolvedActive
 
         val selected = _currentSelectedProvider.value
-        val isSelectedBroken = selected != null && (
-            selected.name.contains("netflix", ignoreCase = true) ||
-            selected.name.contains("prime", ignoreCase = true) ||
-            selected.name.contains("hotstar", ignoreCase = true) ||
-            selected.name.contains("cnc verse", ignoreCase = true)
-        )
-        if (selected == null || isSelectedBroken || allApis.none { it.name == selected.name && it.sourcePlugin == selected.sourcePlugin }) {
+        if (selected == null || allApis.none { it.name == selected.name && it.sourcePlugin == selected.sourcePlugin }) {
             _currentSelectedProvider.value = resolvedActive.firstOrNull() ?: allApis.firstOrNull()
         }
     }

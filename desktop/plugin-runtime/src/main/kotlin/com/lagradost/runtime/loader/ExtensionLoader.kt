@@ -630,8 +630,7 @@ object ExtensionLoader {
 
     private fun ensureNestedProvidersRegistered(loader: ClassLoader, filename: String?) {
         val nestedPlugins = listOf(
-            "com.cncverse.MovieBoxProviderINPlugin",
-            "com.cncverse.MovieBoxProviderPlugin",
+            "com.horis.cncverse.CNCVersePlugin",
             "com.cncverse.CastleTvProviderPlugin"
         )
         for (pluginName in nestedPlugins) {
@@ -653,11 +652,13 @@ object ExtensionLoader {
             } catch (_: Throwable) {}
         }
 
-        // Direct fallback: ensure clean core providers (MovieBox & Castle TV) are registered
+        // Direct fallback: ensure core Ayushflix providers are registered
         val directProviderClasses = listOf(
-            "com.cncverse.MovieBoxProviderIN",
-            "com.cncverse.MovieBoxProvider",
-            "com.cncverse.CastleTvProvider"
+            "com.cncverse.CastleTvProvider",
+            "com.horis.cncverse.NetflixMirrorProvider",
+            "com.horis.cncverse.PrimeVideoMirrorProvider",
+            "com.horis.cncverse.HotStarMirrorProvider",
+            "com.horis.cncverse.DisneyStudioProvider"
         )
         for (providerClass in directProviderClasses) {
             try {

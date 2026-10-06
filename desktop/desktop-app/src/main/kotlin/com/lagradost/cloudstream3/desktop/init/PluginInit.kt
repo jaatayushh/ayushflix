@@ -44,7 +44,18 @@ private fun extractBundledPlugins() {
     try {
         val extensionsDir = PlatformPaths.extensionsDir
         if (!extensionsDir.exists()) extensionsDir.mkdirs()
-        val legacy = listOf("CNC Verse.cs3", "CastleTvProvider.cs3", "CNC Verse Mobile.cs3", "HDOProvider.cs3", "StreamFlixProvider.cs3")
+        val legacy = listOf(
+            "MovieBoxProviderIN.cs3",
+            "MovieBoxProviderIN-jvm.jar",
+            "MovieBoxProvider.cs3",
+            "MovieBoxProvider-jvm.jar",
+            "CastleTvProvider.cs3",
+            "CastleTvProvider-jvm.jar",
+            "CNC Verse.cs3",
+            "CNC Verse Mobile.cs3",
+            "HDOProvider.cs3",
+            "StreamFlixProvider.cs3"
+        )
         for (old in legacy) {
             try { java.io.File(extensionsDir, old).delete() } catch (_: Exception) {}
         }
@@ -61,9 +72,6 @@ private fun extractBundledPlugins() {
         } catch (_: Exception) {}
 
         val bundled = listOf(
-            "MovieBoxProviderIN.cs3",
-            "MovieBoxProvider.cs3",
-            "CastleTvProvider.cs3",
             "Ayushflix.cs3"
         )
         for (pluginName in bundled) {

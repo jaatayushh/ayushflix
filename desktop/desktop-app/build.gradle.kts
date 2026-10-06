@@ -155,6 +155,11 @@ compose.desktop {
             )
             appResourcesRootDir.set(project.layout.projectDirectory.dir("appResources"))
 
+            targetFormats(
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Pkg
+            )
+
             windows {
                 iconFile.set(project.file("src/main/resources/app_icon.ico"))
                 menuGroup = "Ayushflix Desktop"
@@ -167,10 +172,6 @@ compose.desktop {
                 iconFile.set(project.file("src/main/resources/app_icon.icns"))
                 bundleID = "com.lagradost.cloudstream3.desktop"
                 dockName = "Ayushflix"
-                packageFormats(
-                    org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
-                    org.jetbrains.compose.desktop.application.dsl.TargetFormat.Pkg
-                )
             }
         }
     }
