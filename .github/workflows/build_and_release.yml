@@ -64,9 +64,9 @@ jobs:
           echo "Found APK: $APK_FILE"
           TAG="${{ github.ref_name }}"
           if [[ ! "$TAG" =~ ^v ]]; then
-            TAG="v2.1.6"
+            TAG="v2.1.7"
           fi
-          ASSET_NAME="Ayushflix-${TAG}.apk"
+          ASSET_NAME="Ayushflix-${TAG}-release.apk"
           cp "$APK_FILE" "release_assets/${ASSET_NAME}"
           echo "asset_path=release_assets/${ASSET_NAME}" >> $GITHUB_OUTPUT
           echo "asset_name=${ASSET_NAME}" >> $GITHUB_OUTPUT
@@ -262,7 +262,7 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           if [[ ! "$TAG" =~ ^v ]]; then
-            TAG="v2.1.6"
+            TAG="v2.1.7"
           fi
           echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
 
