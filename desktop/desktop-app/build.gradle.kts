@@ -175,6 +175,7 @@ compose.desktop {
                 iconFile.set(project.file("src/main/resources/app_icon.icns"))
                 bundleID = "com.lagradost.cloudstream3.desktop"
                 dockName = "Ayushflix"
+                minimumSystemVersion = "11.0"
             }
         }
     }

@@ -25,168 +25,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-apk:
-    name: Build Release APK
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: false
-
-      - name: Grant Execute Permission for Gradlew
-        run: chmod +x gradlew
-
-      - name: Build Stable Release APK
-        run: ./gradlew assembleStableRelease --stacktrace
-
-      - name: Prepare Release Asset
-        id: prepare_asset
-        run: |
-          mkdir -p release_assets
-          APK_FILE=$(find app/build/outputs/apk/stable/release -name "*.apk" | head -n 1)
-          if [ -z "$APK_FILE" ]; then
-            echo "Error: Release APK not found!"
-            exit 1
-          fi
-          echo "Found APK: $APK_FILE"
-          TAG="${{ github.ref_name }}"
-          if [[ ! "$TAG" =~ ^v ]]; then
-            TAG="v2.1.7"
-          fi
-          ASSET_NAME="Ayushflix-${TAG}-release.apk"
-          cp "$APK_FILE" "release_assets/${ASSET_NAME}"
-          echo "asset_path=release_assets/${ASSET_NAME}" >> $GITHUB_OUTPUT
-          echo "asset_name=${ASSET_NAME}" >> $GITHUB_OUTPUT
-          echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.prepare_asset.outputs.asset_name }}
-          path: ${{ steps.prepare_asset.outputs.asset_path }}
-          retention-days: 30
-
-  build-desktop:
-    name: Build Windows Desktop Client
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: false
-
-      - name: Download libmpv-2.dll
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path "desktop/desktop-app/appResources/windows/mpv"
-          Write-Host "Fetching libmpv build from shinchiro/mpv-winbuild-cmake..."
-          $headers = @{
-            "Accept" = "application/vnd.github.v3+json"
-            "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"
-          }
-          $release = $null
-          try {
-            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/tags/20260610" -Headers $headers
-          } catch {
-            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest" -Headers $headers
-          }
-          $asset = $release.assets | Where-Object { $_.name -like "mpv-dev-x86_64-*.7z" } | Select-Object -First 1
-          Write-Host "Downloading: $($asset.name)"
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "mpv-dev.7z"
-          7z e mpv-dev.7z "libmpv-2.dll" -o"desktop/desktop-app/appResources/windows/mpv" -r
-          if (-not (Test-Path "desktop/desktop-app/appResources/windows/mpv/libmpv-2.dll")) {
-            Write-Error "libmpv-2.dll was not extracted!"
-            exit 1
-          }
-          Write-Host "libmpv-2.dll ready."
-
-      - name: Build Desktop Distributable
-        shell: pwsh
-        run: |
-          cd desktop
-          $sdk = if ($env:ANDROID_HOME -and (Test-Path $env:ANDROID_HOME)) {
-            $env:ANDROID_HOME
-          } elseif (Test-Path "C:\Android\android-sdk") {
-            "C:\Android\android-sdk"
-          } else {
-            "$env:LOCALAPPDATA\Android\Sdk"
-          }
-          Write-Host "Using Android SDK at: $sdk"
-          $env:ANDROID_HOME = $sdk
-          $env:ANDROID_SDK_ROOT = $sdk
-          $localPropContent = "sdk.dir=$($sdk.Replace('\', '/'))`r`n"
-          [System.IO.File]::WriteAllText("$pwd/local.properties", $localPropContent, [System.Text.Encoding]::ASCII)
-          [System.IO.File]::WriteAllText("$pwd/../local.properties", $localPropContent, [System.Text.Encoding]::ASCII)
-
-          $ver = "${{ github.ref_name }}".TrimStart('v')
-          if (-not $ver -or $ver -like "main*") { $ver = "1.0.0" }
-          Write-Host "Building desktop distributable with APP_VERSION=$ver"
-          ./gradlew.bat :desktop-app:createDistributable "-PAPP_VERSION=$ver" --no-daemon --stacktrace
-
-      - name: Install Inno Setup
-        run: choco install innosetup --yes
-
-      - name: Compile Windows Installer
-        shell: pwsh
-        run: |
-          $iscc = (Get-Command "ISCC.exe" -ErrorAction SilentlyContinue)?.Source
-          if (-not $iscc) {
-            $candidates = @(
-              "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-              "C:\Program Files\Inno Setup 6\ISCC.exe"
-            )
-            foreach ($cand in $candidates) {
-              if (Test-Path $cand) { $iscc = $cand; break }
-            }
-          }
-          if (-not $iscc) {
-            Write-Error "Inno Setup compiler (ISCC.exe) not found!"
-            exit 1
-          }
-          Write-Host "Using Inno Setup compiler: $iscc"
-          cd desktop
-          & $iscc "installer\setup.iss"
-          if (-not (Test-Path "desktop-app\build\outputs\Ayushflix-Setup.exe")) {
-            Write-Error "Installer binary Ayushflix-Setup.exe was not found in desktop-app/build/outputs!"
-            exit 1
-          }
-          Write-Host "Installer compiled successfully!"
-
-      - name: Upload Desktop Installer Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ayushflix-Setup.exe
-          path: desktop/desktop-app/build/outputs/Ayushflix-Setup.exe
-          retention-days: 30
+  # NOTE: APK and Windows Desktop builds are temporarily disabled for this DMG-only release run
+  # as requested, since they are already built and attached to release v2.1.7.
+  #
+  # build-apk: ...
+  # build-desktop: ...
 
   build-macos:
-    name: Build macOS Client (.dmg)
-    runs-on: macos-latest
+    name: Build macOS Client (.dmg) (${{ matrix.display_name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+            display_name: AppleSilicon
+            dmg_name: Ayushflix-macOS-AppleSilicon.dmg
+          - os: macos-15-intel
+            arch: x86_64
+            display_name: Intel
+            dmg_name: Ayushflix-macOS-Intel.dmg
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout Repository
@@ -207,11 +66,13 @@ jobs:
 
       - name: Install MPV via Homebrew
         run: |
-          brew install mpv
+          brew install mpv || true
           mkdir -p desktop/desktop-app/appResources/macos/mpv
           # Copy libmpv dylib from brew prefix into appResources
-          BREW_PREFIX=$(brew --prefix mpv)
-          cp -L "$BREW_PREFIX"/lib/libmpv*.dylib desktop/desktop-app/appResources/macos/mpv/ || true
+          BREW_PREFIX=$(brew --prefix mpv 2>/dev/null || true)
+          if [ -n "$BREW_PREFIX" ] && [ -d "$BREW_PREFIX" ]; then
+            cp -L "$BREW_PREFIX"/lib/libmpv*.dylib desktop/desktop-app/appResources/macos/mpv/ 2>/dev/null || true
+          fi
 
       - name: Build macOS Distributable & DMG
         run: |
@@ -222,39 +83,42 @@ jobs:
           if [[ -z "$VER" || "$VER" == main* ]]; then VER="1.0.0"; fi
           ./gradlew :desktop-app:packageDmg "-PAPP_VERSION=$VER" --no-daemon --stacktrace
 
+      - name: Prepare DMG Assets
+        run: |
+          mkdir -p release_assets
+          DMG_FILE=$(find desktop/desktop-app/build/compose/binaries/main/dmg -name "*.dmg" | head -n 1)
+          if [ -z "$DMG_FILE" ]; then
+            echo "Error: DMG file not found!"
+            exit 1
+          fi
+          echo "Found DMG: $DMG_FILE"
+          cp "$DMG_FILE" "release_assets/${{ matrix.dmg_name }}"
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            cp "$DMG_FILE" "release_assets/Ayushflix-Desktop-2.1.7.dmg"
+          fi
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+            cp "$DMG_FILE" "release_assets/Ayushflix-Desktop-2.1.7-Intel.dmg"
+          fi
+
       - name: Upload macOS DMG Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Ayushflix-macOS.dmg
-          path: desktop/desktop-app/build/compose/binaries/main/dmg/*.dmg
+          name: macos-dmg-${{ matrix.arch }}
+          path: release_assets/*.dmg
           retention-days: 30
 
   publish-release:
     name: Publish GitHub Release
-    needs: [build-apk, build-desktop, build-macos]
+    needs: [build-macos]
     runs-on: ubuntu-latest
-    if: always() && needs.build-apk.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true))
+    if: always() && needs.build-macos.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true))
 
     steps:
-      - name: Download APK Artifact
+      - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: 'Ayushflix-*.apk'
+          pattern: 'macos-dmg-*'
           merge-multiple: true
-          path: release_files
-
-      - name: Download Desktop Artifact
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: Ayushflix-Setup.exe
-          path: release_files
-
-      - name: Download macOS Artifact
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: Ayushflix-macOS.dmg
           path: release_files
 
       - name: Determine Tag
@@ -276,8 +140,14 @@ jobs:
 
             **Universal update released with auto update enabled**
 
+            ### macOS Client (Apple Silicon & Intel)
+            - **macOS Compatibility Fix**: Resolved compatibility with older macOS versions including macOS 12 Monterey and macOS 11 Big Sur (`minimumSystemVersion = 11.0`).
+            - **Dedicated Intel (x86_64) Package**: `Ayushflix-macOS-Intel.dmg` (and `Ayushflix-Desktop-2.1.7-Intel.dmg`) for Intel MacBooks, MacBook Air, MacBook Pro, and iMacs (resolves Issue #5).
+            - **Dedicated Apple Silicon (ARM64) Package**: `Ayushflix-macOS-AppleSilicon.dmg` (and `Ayushflix-Desktop-2.1.7.dmg`) for M1/M2/M3/M4 Macs.
+
             ### Android Client (Mobile & TV)
             - **Audio Track Selection Fix**: Resolved issue where audio track selection remained stuck on Hindi; user track and language intent in the tracks dialog is now fully respected.
+            - **TV Search UI Fix**: Resolved crash where Android TV search failed with missing view ID (`search_section_title`).
             - **Liquid Glass Navigation Pill**: Redesigned floating bottom navigation pill with frosted glass indicator and crystal-clear icons.
             - **Who's Watching?**: Netflix-style startup profile selection screen with animated avatars.
             - **Enhanced Top Match**: Enlarged card layout with high-resolution poster display and instant play button.
